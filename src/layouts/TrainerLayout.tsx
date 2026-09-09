@@ -1,0 +1,277 @@
+import {
+  AppBar,
+  Box,
+  Drawer,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import {
+  BookOutlined,
+  DashboardOutlined,
+  FolderOutlined,
+  LogoutOutlined,
+  MenuOutlined,
+  NotificationsOutlined,
+  PersonOutlined,
+  PeopleOutlined,
+  QuizOutlined,
+  AnalyticsOutlined,
+} from '@mui/icons-material';
+import { useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import keycloak from '../services/keycloak';
+
+const drawerWidth = 250;
+const collapsedWidth = 72;
+
+const menuItems = [
+  { label: 'Dashboard', path: '/trainer/dashboard', icon: <DashboardOutlined /> },
+  { label: 'My Profile', path: '/trainer/profile', icon: <PersonOutlined /> },
+  { label: 'My Courses', path: '/trainer/courses', icon: <BookOutlined /> },
+  { label: 'Questionnaires', path: '/trainer/questionnaires', icon: <QuizOutlined /> },
+  { label: 'Trainees', path: '/trainer/trainees', icon: <PeopleOutlined /> },
+  { label: 'Resource Library', path: '/trainer/library', icon: <FolderOutlined /> },
+  { label: 'Analytics', path: '/trainer/analytics', icon: <AnalyticsOutlined /> },
+];
+
+const TrainerLayout = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  const handleLogout = () => {
+    keycloak.logout({
+      redirectUri: `${window.location.origin}/`,
+    });
+  };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
+
+  const drawerContent = (isMobile = false) => (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box
+        sx={{
+          px: isMobile || !collapsed ? 2.5 : 1,
+          py: 2,
+          minHeight: 72,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: isMobile || !collapsed ? 'flex-start' : 'center',
+          overflow: 'hidden',
+        }}
+      >
+        {isMobile || !collapsed ? (
+          <Box>
+            <Typography
+              variant="h6"
+              color="primary"
+              noWrap
+              sx={{ fontWeight: 800 }}
+            >
+              CAPACITY CONNECT
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Trainer Portal
+            </Typography>
+          </Box>
+        ) : (
+          <Typography variant="h6" color="primary" sx={{ fontWeight: 800 }}>
+            CC
+          </Typography>
+        )}
+      </Box>
+
+      <List sx={{ px: 1, flex: 1 }}>
+        {menuItems.map((item) => {
+          const active =
+            location.pathname === item.path ||
+            (item.path === '/trainer/courses' &&
+              location.pathname.startsWith('/trainer/courses/')) ||
+            (item.path === '/trainer/trainees' &&
+              location.pathname.startsWith('/trainer/trainees/'));
+
+          const button = (
+            <ListItemButton
+              selected={active}
+              onClick={() => handleNavigation(item.path)}
+              sx={{
+                minHeight: 48,
+                px: collapsed && !isMobile ? 1.5 : 2,
+                justifyContent:
+                  collapsed && !isMobile ? 'center' : 'flex-start',
+                borderRadius: 2,
+                mb: 0.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: collapsed && !isMobile ? 0 : 42,
+                  justifyContent: 'center',
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+
+              {(!collapsed || isMobile) && (
+                <ListItemText primary={item.label} />
+              )}
+            </ListItemButton>
+          );
+
+          return collapsed && !isMobile ? (
+            <Tooltip key={item.path} title={item.label} placement="right">
+              {button}
+            </Tooltip>
+          ) : (
+            <Box key={item.path}>{button}</Box>
+          );
+        })}
+      </List>
+
+      <Box sx={{ p: 1 }}>
+        <Tooltip
+          title={collapsed && !isMobile ? 'Logout' : ''}
+          placement="right"
+        >
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{
+              minHeight: 48,
+              px: collapsed && !isMobile ? 1.5 : 2,
+              justifyContent:
+                collapsed && !isMobile ? 'center' : 'flex-start',
+              borderRadius: 2,
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: collapsed && !isMobile ? 0 : 42,
+                justifyContent: 'center',
+              }}
+            >
+              <LogoutOutlined />
+            </ListItemIcon>
+
+            {(!collapsed || isMobile) && <ListItemText primary="Logout" />}
+          </ListItemButton>
+        </Tooltip>
+      </Box>
+    </Box>
+  );
+
+  return (
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F5F8FA' }}>
+      <AppBar
+        position="fixed"
+        color="inherit"
+        elevation={1}
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          width: {
+            xs: '100%',
+            md: `calc(100% - ${
+              collapsed ? collapsedWidth : drawerWidth
+            }px)`,
+          },
+          ml: {
+            xs: 0,
+            md: `${collapsed ? collapsedWidth : drawerWidth}px`,
+          },
+          transition: 'width 0.2s, margin-left 0.2s',
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={() => setCollapsed((value) => !value)}
+            sx={{ mr: 2, display: { xs: 'none', md: 'inline-flex' } }}
+          >
+            <MenuOutlined />
+          </IconButton>
+
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={() => setMobileOpen(true)}
+            sx={{ mr: 2, display: { xs: 'inline-flex', md: 'none' } }}
+          >
+            <MenuOutlined />
+          </IconButton>
+
+          <Typography
+            variant="h6"
+            color="primary"
+            noWrap
+            sx={{ flexGrow: 1, fontWeight: 700 }}
+          >
+            Trainer Portal
+          </Typography>
+
+          <IconButton onClick={() => navigate('/trainer/notifications')}>
+            <NotificationsOutlined />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
+
+      <Box
+        component="nav"
+        sx={{
+          width: { md: collapsed ? collapsedWidth : drawerWidth },
+          flexShrink: { md: 0 },
+        }}
+      >
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          {drawerContent(true)}
+        </Drawer>
+
+        <Drawer
+          variant="permanent"
+          open
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': {
+              width: collapsed ? collapsedWidth : drawerWidth,
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+              transition: 'width 0.2s',
+            },
+          }}
+        >
+          {drawerContent()}
+        </Drawer>
+      </Box>
+
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Toolbar />
+        <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+          <Outlet />
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+export default TrainerLayout;
