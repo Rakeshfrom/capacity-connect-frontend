@@ -46,7 +46,7 @@ interface Course {
   title: string;
 }
 
-const API = '';
+const API = import.meta.env.VITE_API_BASE_URL || '';
 
 const TrainerLibrary = () => {
   const { user } = useAuth();

@@ -28,7 +28,7 @@ type VerificationResult = {
   issuedAt: string;
 };
 
-const API_BASE = '/api';
+const API_BASE = `${import.meta.env.VITE_API_BASE_URL || ''}/api`;
 
 const CertificateVerification = () => {
   const [certificateNumber, setCertificateNumber] = useState('');
