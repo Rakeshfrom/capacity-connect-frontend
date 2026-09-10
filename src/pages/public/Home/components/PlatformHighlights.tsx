@@ -12,59 +12,105 @@ const highlights = [
 ];
 
 const PlatformHighlights = () => (
-  <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: '#fff' }}>
+  <Box sx={{ py: { xs: 7, md: 10 }, bgcolor: '#fff' }}>
     <Container maxWidth="xl">
-      <Box sx={{ maxWidth: 760, mb: 4.5 }}>
-        <Typography sx={{ color: '#0B5A91', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.08em' }}>
+      <Box sx={{ maxWidth: 760, mb: { xs: 4, md: 5.5 } }}>
+        <Typography
+          sx={{
+            color: '#0B5A91',
+            fontWeight: 800,
+            fontSize: '.76rem',
+            letterSpacing: '.12em',
+          }}
+        >
           PLATFORM CAPABILITIES
         </Typography>
-        <Typography variant="h4" sx={{ mt: 1, color: '#173F60', fontWeight: 800 }}>
+
+        <Typography
+          variant="h4"
+          sx={{
+            mt: 1.2,
+            color: '#123F63',
+            fontWeight: 800,
+            letterSpacing: '-.02em',
+          }}
+        >
           Everything you need for connected learning
         </Typography>
-        <Typography sx={{ mt: 1.2, color: '#657887', lineHeight: 1.7 }}>
+
+        <Typography sx={{ mt: 1.5, color: '#657887', lineHeight: 1.75, maxWidth: 680 }}>
           A single environment connecting learning, resources, assessment,
-          certification and performance.
+          certification and professional development.
         </Typography>
       </Box>
 
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', lg: 'repeat(4,1fr)' },
-        gap: 2,
-      }}>
-        {highlights.map(([title, text, icon]) => (
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', lg: 'repeat(4,1fr)' },
+          gap: 2,
+        }}
+      >
+        {highlights.map(([title, text, icon], index) => (
           <Paper
             key={String(title)}
             elevation={0}
             sx={{
-              p: 3,
-              minHeight: 190,
-              border: '1px solid #DFE8EE',
-              borderRadius: 2.5,
-              transition: 'all .2s ease',
+              position: 'relative',
+              overflow: 'hidden',
+              p: { xs: 2.8, md: 3.2 },
+              minHeight: 205,
+              border: '1px solid #DCE7EE',
+              borderRadius: 3,
+              bgcolor: '#fff',
+              transition: 'transform .25s ease, box-shadow .25s ease, border-color .25s ease',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: 48,
+                height: 3,
+                bgcolor: '#0B5A91',
+              },
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 12px 30px rgba(20,55,80,.09)',
-                borderColor: '#C5DCE9',
+                transform: 'translateY(-5px)',
+                boxShadow: '0 18px 38px rgba(20,55,80,.10)',
+                borderColor: '#C4DCE9',
               },
             }}
           >
-            <Box sx={{
-              width: 46,
-              height: 46,
-              display: 'grid',
-              placeItems: 'center',
-              borderRadius: 1.5,
-              bgcolor: '#EAF5FC',
-              color: '#0B5A91',
-              mb: 2,
-            }}>
-              {icon}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  display: 'grid',
+                  placeItems: 'center',
+                  borderRadius: 2,
+                  bgcolor: '#EAF5FC',
+                  color: '#0B5A91',
+                }}
+              >
+                {icon}
+              </Box>
+
+              <Typography
+                sx={{
+                  color: '#C1D0D9',
+                  fontWeight: 800,
+                  fontSize: '.8rem',
+                }}
+              >
+                0{index + 1}
+              </Typography>
             </Box>
-            <Typography sx={{ color: '#244A66', fontWeight: 700, fontSize: '1.05rem' }}>
+
+            <Typography sx={{ mt: 2.4, color: '#244A66', fontWeight: 800, fontSize: '1.05rem' }}>
               {title}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#657887', mt: 1, lineHeight: 1.65 }}>
+
+            <Typography variant="body2" sx={{ mt: 1, color: '#657887', lineHeight: 1.65 }}>
               {text}
             </Typography>
           </Paper>
