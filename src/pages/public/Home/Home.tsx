@@ -1,4 +1,5 @@
 import HeroSection from './components/HeroSection';
+import FeaturesSection from '../../../components/FeaturesSection';
 import PlatformHighlights from './components/PlatformHighlights';
 import HowItWorks from './components/HowItWorks';
 import FeaturedCourses from './components/FeaturedCourses';
@@ -9,6 +10,7 @@ const Home = () => {
   return (
     <>
       <HeroSection />
+    <FeaturesSection />
       <PlatformHighlights />
       <HowItWorks />
       <FeaturedCourses />

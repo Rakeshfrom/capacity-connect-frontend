@@ -11,12 +11,14 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { NavLink, Outlet } from 'react-router-dom';
+import GTranslate from '../components/GTranslate';
 
 const navItems = [
   { label: 'Home', path: '/' },
   { label: 'About', path: '/about' },
   { label: 'Courses', path: '/courses' },
   { label: 'Announcements', path: '/announcements' },
+  { label: 'Features', path: '/#features' },
 ];
 
 const PublicLayout = () => {
@@ -179,10 +181,41 @@ const PublicLayout = () => {
               ))}
             </Box>
 
-            <Button
-              component={NavLink}
-              to="/login"
-              variant="contained"
+            <Box
+              sx={{
+                display: { xs: 'none', sm: 'flex' },
+                alignItems: 'center',
+                gap: 1.5,
+                ml: 'auto',
+              }}
+            >
+              <GTranslate />
+
+              <Button
+                component={NavLink}
+                to="/signup"
+                variant="outlined"
+                sx={{
+                  borderColor: '#075B91',
+                  color: '#075B91',
+                  px: 2.2,
+                  py: 1.05,
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  '&:hover': {
+                    borderColor: '#064A75',
+                    bgcolor: '#F2F7FA',
+                  },
+                }}
+              >
+                Sign Up
+              </Button>
+
+              <Button
+                component={NavLink}
+                to="/login"
+                variant="contained"
               sx={{
                 display: { xs: 'none', sm: 'inline-flex' },
                 bgcolor: '#075B91',
@@ -200,6 +233,7 @@ const PublicLayout = () => {
             >
               Login
             </Button>
+            </Box>
 
             <IconButton
               sx={{
