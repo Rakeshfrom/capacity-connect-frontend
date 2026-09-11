@@ -49,9 +49,9 @@ const HeroSection = () => {
                 mt: 2.5,
                 color: '#123F63',
                 fontWeight: 800,
-                fontSize: { xs: '2.35rem', sm: '3.1rem', md: '4.15rem' },
+                fontSize: { xs: '2rem', sm: '2.55rem', md: '3.2rem' },
                 lineHeight: 1.08,
-                maxWidth: 800,
+                maxWidth: 650,
               }}
             >
               Learn today.

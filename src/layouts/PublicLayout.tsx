@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   AppBar,
   Box,
@@ -5,23 +6,56 @@ import {
   Container,
   Divider,
   IconButton,
+  InputAdornment,
   Link,
+  Menu,
+  MenuItem,
+  TextField,
   Toolbar,
   Typography,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { NavLink, Outlet } from 'react-router-dom';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import AccessibilityNewRoundedIcon from '@mui/icons-material/AccessibilityNewRounded';
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import GTranslate from '../components/GTranslate';
 
-const navItems = [
-  { label: 'Home', path: '/' },
-  { label: 'About', path: '/about' },
-  { label: 'Courses', path: '/courses' },
-  { label: 'Announcements', path: '/announcements' },
-  { label: 'Features', path: '/#features' },
-];
-
 const PublicLayout = () => {
+  const navigate = useNavigate();
+
+  const [search, setSearch] = useState('');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [learningAnchor, setLearningAnchor] = useState<null | HTMLElement>(null);
+  const [resourcesAnchor, setResourcesAnchor] = useState<null | HTMLElement>(null);
+  const [assessmentAnchor, setAssessmentAnchor] = useState<null | HTMLElement>(null);
+  const [competencyAnchor, setCompetencyAnchor] = useState<null | HTMLElement>(null);
+
+  const submitSearch = () => {
+    const value = search.trim();
+    navigate(value ? `/search?q=${encodeURIComponent(value)}` : '/search');
+  };
+
+  const navButtonSx = {
+    px: 1.35,
+    py: 1.05,
+    borderRadius: 1.5,
+    color: '#36546D',
+    fontWeight: 650,
+    textTransform: 'none',
+    '&:hover': {
+      bgcolor: '#F2F7FA',
+      color: '#075B91',
+    },
+  };
+
+  const dropdownButtonSx = {
+    ...navButtonSx,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 0.2,
+  };
+
   return (
     <Box
       sx={{
@@ -36,30 +70,34 @@ const PublicLayout = () => {
         sx={{
           bgcolor: '#073B66',
           color: '#fff',
-          borderBottom: '1px solid rgba(255,255,255,0.15)',
+          borderBottom: '1px solid rgba(255,255,255,0.14)',
         }}
       >
         <Container maxWidth="xl">
           <Box
             sx={{
-              minHeight: 42,
+              minHeight: 38,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 2,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box
                 component="img"
                 src="/logo/india-emblem.png"
                 alt="Government of India emblem"
-                sx={{ width: 22, height: 28, objectFit: 'contain' }}
+                sx={{
+                  width: 18,
+                  height: 25,
+                  objectFit: 'contain',
+                }}
               />
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 600,
+                  fontWeight: 650,
                   letterSpacing: '0.02em',
                 }}
               >
@@ -71,7 +109,7 @@ const PublicLayout = () => {
               variant="caption"
               sx={{
                 display: { xs: 'none', sm: 'block' },
-                opacity: 0.9,
+                opacity: 0.92,
               }}
             >
               Ministry of Earth Sciences • India Meteorological Department
@@ -80,7 +118,7 @@ const PublicLayout = () => {
         </Container>
       </Box>
 
-      {/* Main navigation */}
+      {/* Main institutional header */}
       <AppBar
         position="sticky"
         elevation={0}
@@ -94,20 +132,21 @@ const PublicLayout = () => {
           <Toolbar
             disableGutters
             sx={{
-              minHeight: { xs: 72, md: 88 },
-              gap: 2,
+              minHeight: { xs: 72, md: 82 },
+              gap: { xs: 1, md: 2 },
             }}
           >
+            {/* Brand */}
             <Box
               component={NavLink}
               to="/"
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1.5,
+                gap: 1.25,
                 textDecoration: 'none',
                 color: 'inherit',
-                mr: { xs: 'auto', md: 5 },
+                flexShrink: 0,
               }}
             >
               <Box
@@ -115,18 +154,18 @@ const PublicLayout = () => {
                 src="/logo/imd-logo.webp"
                 alt="India Meteorological Department"
                 sx={{
-                  width: { xs: 48, md: 58 },
-                  height: { xs: 48, md: 58 },
+                  width: { xs: 46, md: 52 },
+                  height: { xs: 46, md: 52 },
                   objectFit: 'contain',
                 }}
               />
 
-              <Box>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                 <Typography
                   sx={{
-                    fontSize: { xs: '1.15rem', md: '1.45rem' },
+                    fontSize: { sm: '1.08rem', md: '1.3rem' },
                     fontWeight: 800,
-                    letterSpacing: '0.025em',
+                    letterSpacing: '0.02em',
                     lineHeight: 1.1,
                     color: '#123F63',
                   }}
@@ -136,10 +175,11 @@ const PublicLayout = () => {
 
                 <Typography
                   sx={{
-                    mt: 0.5,
-                    fontSize: { xs: '0.62rem', md: '0.7rem' },
+                    mt: 0.35,
+                    fontSize: { sm: '0.58rem', md: '0.66rem' },
                     color: '#64798B',
                     fontWeight: 500,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   Digital Capacity Building & Learning Management Portal
@@ -147,48 +187,234 @@ const PublicLayout = () => {
               </Box>
             </Box>
 
+            {/* Search */}
+            <Box
+              component="form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitSearch();
+              }}
+              sx={{
+                display: { xs: 'none', lg: 'flex' },
+                alignItems: 'center',
+                ml: { md: 2, xl: 4 },
+                width: { lg: 190, xl: 245 },
+              }}
+            >
+              <TextField
+                fullWidth
+                size="small"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search learning content"
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchRoundedIcon
+                          sx={{ color: '#6D8495', fontSize: 19 }}
+                        />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    bgcolor: '#F7FAFC',
+                    fontSize: '0.8rem',
+                    '& fieldset': {
+                      borderColor: '#D7E2EA',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#AFC4D2',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#075B91',
+                    },
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Desktop navigation */}
+            <Box
+              sx={{
+                display: { xs: 'none', xl: 'flex' },
+                alignItems: 'center',
+                ml: 'auto',
+                gap: 0.15,
+              }}
+            >
+              <Button component={NavLink} to="/" sx={navButtonSx}>
+                Home
+              </Button>
+
+              <Button component={NavLink} to="/about" sx={navButtonSx}>
+                About
+              </Button>
+
+              <Button
+                onClick={(event) => setLearningAnchor(event.currentTarget)}
+                sx={dropdownButtonSx}
+                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
+              >
+                Learning
+              </Button>
+              <Menu
+                anchorEl={learningAnchor}
+                open={Boolean(learningAnchor)}
+                onClose={() => setLearningAnchor(null)}
+              >
+                <MenuItem onClick={() => navigate('/courses')}>
+                  Explore Courses
+                </MenuItem>
+                <MenuItem onClick={() => navigate('/courses')}>
+                  Learning Programmes
+                </MenuItem>
+              </Menu>
+
+              <Button
+                onClick={(event) => setResourcesAnchor(event.currentTarget)}
+                sx={dropdownButtonSx}
+                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
+              >
+                Resources
+              </Button>
+              <Menu
+                anchorEl={resourcesAnchor}
+                open={Boolean(resourcesAnchor)}
+                onClose={() => setResourcesAnchor(null)}
+              >
+                <MenuItem onClick={() => navigate('/login')}>
+                  Digital Library
+                </MenuItem>
+                <MenuItem onClick={() => navigate('/login')}>
+                  Trainer Resources
+                </MenuItem>
+              </Menu>
+
+              <Button
+                onClick={(event) => setAssessmentAnchor(event.currentTarget)}
+                sx={dropdownButtonSx}
+                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
+              >
+                Assessments
+              </Button>
+              <Menu
+                anchorEl={assessmentAnchor}
+                open={Boolean(assessmentAnchor)}
+                onClose={() => setAssessmentAnchor(null)}
+              >
+                <MenuItem onClick={() => navigate('/login')}>
+                  Online Assessments
+                </MenuItem>
+                <MenuItem onClick={() => navigate('/login')}>
+                  Assessment Results
+                </MenuItem>
+              </Menu>
+
+              <Button
+                onClick={(event) => setCompetencyAnchor(event.currentTarget)}
+                sx={dropdownButtonSx}
+                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
+              >
+                Competencies
+              </Button>
+              <Menu
+                anchorEl={competencyAnchor}
+                open={Boolean(competencyAnchor)}
+                onClose={() => setCompetencyAnchor(null)}
+              >
+                <MenuItem onClick={() => navigate('/login')}>
+                  Competency Mapping
+                </MenuItem>
+                <MenuItem onClick={() => navigate('/login')}>
+                  Skill Development
+                </MenuItem>
+              </Menu>
+
+              <Button
+                component={NavLink}
+                to="/announcements"
+                sx={navButtonSx}
+              >
+                Announcements
+              </Button>
+            </Box>
+
+            {/* Utility controls */}
             <Box
               sx={{
                 display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
-                gap: 0.5,
-                flexGrow: 1,
+                gap: 1,
+                ml: { md: 'auto', xl: 1.5 },
               }}
             >
-              {navItems.map((item) => (
+              <Button
+                component={NavLink}
+                to="/certificate-verification"
+                sx={{
+                  ...navButtonSx,
+                  display: { md: 'none', xl: 'inline-flex' },
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Verify Certificate
+              </Button>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.25,
+                  px: 0.7,
+                  border: '1px solid #D8E3EA',
+                  borderRadius: 1.5,
+                  color: '#496476',
+                }}
+                aria-label="Text size controls"
+              >
+                <AccessibilityNewRoundedIcon sx={{ fontSize: 17 }} />
                 <Button
-                  key={item.path}
-                  component={NavLink}
-                  to={item.path}
+                  size="small"
                   sx={{
-                    px: 1.8,
-                    py: 1.15,
-                    borderRadius: 1.5,
-                    color: '#36546D',
-                    fontWeight: 650,
+                    minWidth: 22,
+                    px: 0.3,
+                    color: '#496476',
+                    fontSize: '0.68rem',
                     textTransform: 'none',
-                    '&.active': {
-                      color: '#075B91',
-                      bgcolor: '#EAF4FB',
-                    },
-                    '&:hover': {
-                      bgcolor: '#F2F7FA',
-                    },
                   }}
                 >
-                  {item.label}
+                  A−
                 </Button>
-              ))}
-            </Box>
+                <Button
+                  size="small"
+                  sx={{
+                    minWidth: 22,
+                    px: 0.3,
+                    color: '#496476',
+                    fontSize: '0.72rem',
+                    textTransform: 'none',
+                  }}
+                >
+                  A
+                </Button>
+                <Button
+                  size="small"
+                  sx={{
+                    minWidth: 22,
+                    px: 0.3,
+                    color: '#496476',
+                    fontSize: '0.8rem',
+                    textTransform: 'none',
+                  }}
+                >
+                  A+
+                </Button>
+              </Box>
 
-            <Box
-              sx={{
-                display: { xs: 'none', sm: 'flex' },
-                alignItems: 'center',
-                gap: 1.5,
-                ml: 'auto',
-              }}
-            >
               <GTranslate />
 
               <Button
@@ -198,15 +424,12 @@ const PublicLayout = () => {
                 sx={{
                   borderColor: '#075B91',
                   color: '#075B91',
-                  px: 2.2,
-                  py: 1.05,
+                  px: 1.8,
+                  py: 1,
                   borderRadius: 1.5,
                   textTransform: 'none',
                   fontWeight: 700,
-                  '&:hover': {
-                    borderColor: '#064A75',
-                    bgcolor: '#F2F7FA',
-                  },
+                  whiteSpace: 'nowrap',
                 }}
               >
                 Sign Up
@@ -216,35 +439,123 @@ const PublicLayout = () => {
                 component={NavLink}
                 to="/login"
                 variant="contained"
-              sx={{
-                display: { xs: 'none', sm: 'inline-flex' },
-                bgcolor: '#075B91',
-                px: 3,
-                py: 1.2,
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontWeight: 700,
-                boxShadow: '0 5px 14px rgba(7,91,145,0.18)',
-                '&:hover': {
-                  bgcolor: '#064A75',
-                  boxShadow: '0 7px 18px rgba(7,91,145,0.24)',
-                },
-              }}
-            >
-              Login
-            </Button>
+                sx={{
+                  bgcolor: '#075B91',
+                  px: 2.2,
+                  py: 1,
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  boxShadow: '0 5px 14px rgba(7,91,145,0.18)',
+                  '&:hover': {
+                    bgcolor: '#064A75',
+                  },
+                }}
+              >
+                Login
+              </Button>
             </Box>
 
+            {/* Mobile */}
             <IconButton
+              onClick={() => setMobileOpen((value) => !value)}
               sx={{
-                display: { xs: 'flex', md: 'none' },
+                display: { xs: 'flex', xl: 'none' },
+                ml: 'auto',
                 color: '#173B5E',
               }}
-              aria-label="menu"
+              aria-label="Open navigation menu"
             >
               <MenuIcon />
             </IconButton>
           </Toolbar>
+
+          {/* Tablet/mobile navigation */}
+          {mobileOpen && (
+            <Box
+              sx={{
+                display: { xs: 'block', xl: 'none' },
+                pb: 2,
+                borderTop: '1px solid #E4ECF1',
+              }}
+            >
+              <Box
+                component="form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submitSearch();
+                  setMobileOpen(false);
+                }}
+                sx={{ display: { xs: 'flex', lg: 'none' }, py: 2 }}
+              >
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search learning content"
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchRoundedIcon
+                            sx={{ color: '#6D8495', fontSize: 19 }}
+                          />
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 0.5,
+                }}
+              >
+                {[
+                  ['Home', '/'],
+                  ['About', '/about'],
+                  ['Learning', '/courses'],
+                  ['Resources', '/login'],
+                  ['Assessments', '/login'],
+                  ['Competencies', '/login'],
+                  ['Announcements', '/announcements'],
+                  ['Verify Certificate', '/certificate-verification'],
+                  ['Sign Up', '/signup'],
+                  ['Login', '/login'],
+                ].map(([label, path]) => (
+                  <Button
+                    key={label}
+                    component={NavLink}
+                    to={path}
+                    onClick={() => setMobileOpen(false)}
+                    sx={navButtonSx}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  mt: 1.5,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <GTranslate />
+
+                <Typography variant="caption" sx={{ color: '#657B8B' }}>
+                  Accessibility: A− A A+
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </Container>
       </AppBar>
 
@@ -271,7 +582,14 @@ const PublicLayout = () => {
             }}
           >
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  mb: 2,
+                }}
+              >
                 <Box
                   component="img"
                   src="/logo/india-emblem.png"
@@ -307,11 +625,16 @@ const PublicLayout = () => {
                 Quick Links
               </Typography>
 
-              {navItems.map((item) => (
+              {[
+                ['Home', '/'],
+                ['About', '/about'],
+                ['Courses', '/courses'],
+                ['Announcements', '/announcements'],
+              ].map(([label, path]) => (
                 <Link
-                  key={item.path}
+                  key={path}
                   component={NavLink}
-                  to={item.path}
+                  to={path}
                   underline="none"
                   sx={{
                     display: 'block',
@@ -320,7 +643,7 @@ const PublicLayout = () => {
                     '&:hover': { color: '#fff' },
                   }}
                 >
-                  {item.label}
+                  {label}
                 </Link>
               ))}
 
