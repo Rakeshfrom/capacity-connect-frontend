@@ -34,27 +34,60 @@ interface AuthContextValue {
   loading: boolean;
 }
 
+const getCacheKey = () =>
+  keycloak.subject
+    ? `capacity-connect.current-user.${keycloak.subject}`
+    : 'capacity-connect.current-user';
+
+const readCachedUser = (): CurrentUser | null => {
+  try {
+    const value = sessionStorage.getItem(getCacheKey());
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+};
+
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedUser = readCachedUser();
+
+  const [user, setUser] = useState<CurrentUser | null>(cachedUser);
+  const [loading, setLoading] = useState(!cachedUser);
 
   useEffect(() => {
     if (!keycloak.authenticated) {
+      setUser(null);
       setLoading(false);
       return;
     }
 
+    let active = true;
+
     getCurrentUser()
-      .then((data) => setUser(data))
+      .then((data) => {
+        if (!active) return;
+
+        setUser(data);
+        sessionStorage.setItem(
+          getCacheKey(),
+          JSON.stringify(data),
+        );
+      })
       .catch((error) => {
         console.error('Failed to load current user:', error);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (

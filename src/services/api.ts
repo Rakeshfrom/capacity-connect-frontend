@@ -129,6 +129,47 @@ export async function getQuestionsByAssessment(assessmentId: number) {
     return apiFetch(`/questions/assessment/${assessmentId}`);
 }
 
+export async function createQuestion(data: {
+  assessmentId: number;
+  questionText: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctOption: 'A' | 'B' | 'C' | 'D';
+  marks: number;
+}) {
+  return apiFetch('/questions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateQuestion(
+  id: number,
+  data: {
+    assessmentId: number;
+    questionText: string;
+    optionA: string;
+    optionB: string;
+    optionC: string;
+    optionD: string;
+    correctOption: 'A' | 'B' | 'C' | 'D';
+    marks: number;
+  }
+) {
+  return apiFetch(`/questions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteQuestion(id: number) {
+  return apiFetch(`/questions/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getEnrollments() {
     return apiFetch('/enrollments/me');
 }
@@ -298,6 +339,7 @@ export async function getCourseResources(courseId: number) {
 export async function uploadCourseResource(data: {
   trainerId: number;
   courseId: number;
+  moduleId?: number;
   title: string;
   description?: string;
   resourceType: string;
@@ -307,6 +349,7 @@ export async function uploadCourseResource(data: {
 
   formData.append('trainerId', String(data.trainerId));
   formData.append('courseId', String(data.courseId));
+  if (data.moduleId) formData.append('moduleId', String(data.moduleId));
   formData.append('title', data.title);
   formData.append('description', data.description || '');
   formData.append('resourceType', data.resourceType);

@@ -23,6 +23,7 @@ import {
   getEnrollments,
   getMyCourseAssessments,
   getMyCourseResources,
+  getCourseModules,
   downloadTrainerResource,
 } from '../../../services/api';
 
@@ -42,8 +43,19 @@ type Enrollment = {
   progress: number;
 };
 
+type CourseModule = {
+  id: number;
+  courseId: number;
+  title: string;
+  description?: string;
+  orderIndex: number;
+  active: boolean;
+};
+
 type Resource = {
   id: number;
+  courseId?: number;
+  moduleId?: number;
   title: string;
   description?: string;
   resourceType: string;
@@ -67,6 +79,7 @@ const CourseWorkspace = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
+  const [modules, setModules] = useState<CourseModule[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -94,14 +107,21 @@ const CourseWorkspace = () => {
           return;
         }
 
-        const [resourceData, assessmentData] = await Promise.all([
-          getMyCourseResources(id),
-          getMyCourseAssessments(id),
-        ]);
+        const [resourceData, moduleData, assessmentData] =
+          await Promise.all([
+            getMyCourseResources(id),
+            getCourseModules(id),
+            getMyCourseAssessments(id),
+          ]);
 
         setCourse(courseData);
         setEnrollment(currentEnrollment);
         setResources(Array.isArray(resourceData) ? resourceData : []);
+        setModules(
+          Array.isArray(moduleData)
+            ? moduleData.filter((item: CourseModule) => item.active)
+            : []
+        );
         setAssessments(Array.isArray(assessmentData) ? assessmentData : []);
       } catch (err) {
         console.error('Failed to load course workspace:', err);
@@ -354,6 +374,23 @@ const CourseWorkspace = () => {
                             ? ` • ${resource.fileName}`
                             : ''}
                         </Typography>
+
+                        {resource.moduleId && (
+                          <Chip
+                            size="small"
+                            label={
+                              modules.find(
+                                (module) => module.id === resource.moduleId
+                              )?.title || 'Course resource'
+                            }
+                            sx={{
+                              mt: 0.8,
+                              color: '#0B5A91',
+                              bgcolor: '#EEF6FC',
+                              fontWeight: 700,
+                            }}
+                          />
+                        )}
                       </Box>
 
                       <Button
