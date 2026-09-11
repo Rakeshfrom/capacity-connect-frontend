@@ -26,7 +26,6 @@ import {
   createCourse,
   getTrainerCourses,
   getTrainerAnalytics,
-  getDepartments,
 } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -36,12 +35,6 @@ type Course = {
   category?: string;
   status?: string;
   departmentId?: number;
-};
-
-type Department = {
-  id: number;
-  name: string;
-  code: string;
 };
 
 type CourseAnalytics = {
@@ -58,7 +51,7 @@ type CourseForm = {
   durationHours: string;
   level: string;
   status: string;
-  departmentId: string;
+  department: string;
 };
 
 const initialForm: CourseForm = {
@@ -68,7 +61,7 @@ const initialForm: CourseForm = {
   durationHours: '',
   level: 'BEGINNER',
   status: 'DRAFT',
-  departmentId: '',
+  department: '',
 };
 
 const TrainerCourses = () => {
@@ -77,7 +70,6 @@ const TrainerCourses = () => {
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [analytics, setAnalytics] = useState<CourseAnalytics[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -88,15 +80,13 @@ const TrainerCourses = () => {
     if (!user) return;
 
     try {
-      const [courseData, analyticsData, departmentData] = await Promise.all([
+      const [courseData, analyticsData] = await Promise.all([
         getTrainerCourses(user.id),
         getTrainerAnalytics(user.id),
-        getDepartments(),
       ]);
 
       setCourses(courseData);
       setAnalytics(analyticsData.courses ?? []);
-      setDepartments(departmentData ?? []);
     } catch (error) {
       console.error('Failed to load trainer courses:', error);
     } finally {
@@ -139,11 +129,6 @@ const TrainerCourses = () => {
       return;
     }
 
-    if (!form.departmentId) {
-      setError('Department is required.');
-      return;
-    }
-
     setSaving(true);
     setError('');
 
@@ -155,7 +140,7 @@ const TrainerCourses = () => {
         durationHours: Number(form.durationHours),
         level: form.level,
         status: form.status,
-        departmentId: Number(form.departmentId),
+        department: form.department.trim(),
       });
 
       setOpenDialog(false);
@@ -474,19 +459,12 @@ const TrainerCourses = () => {
             />
 
             <TextField
-              select
-              required
               label="Department"
               fullWidth
-              value={form.departmentId}
-              onChange={(e) => updateField('departmentId', e.target.value)}
-            >
-              {departments.map((department) => (
-                <MenuItem key={department.id} value={department.id}>
-                  {department.name}
-                </MenuItem>
-              ))}
-            </TextField>
+              value={form.department}
+              onChange={(e) => updateField('department', e.target.value)}
+              placeholder="e.g. Meteorology, IMD"
+            />
 
             <TextField
               label="Duration (hours)"
