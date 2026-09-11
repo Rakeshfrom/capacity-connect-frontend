@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Box, Paper, TextField, IconButton, Typography, Chip, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import { chatWithAI } from '../services/api';
+import { chatWithAI, extractAIResource } from '../services/api';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -13,6 +13,8 @@ type Message = {
 export default function AiChatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [resource, setResource] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
 
   const sendMessage = async (text = input) => {
@@ -90,20 +92,62 @@ export default function AiChatbot() {
         {loading && <CircularProgress size={22} />}
       </Box>
 
-      <Box sx={{ p: 1.5, display: 'flex', gap: 1, borderTop: '1px solid', borderColor: 'divider' }}>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Ask anything..."
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') sendMessage();
+      <Box sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp"
+          hidden
+          onChange={async e => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            try {
+              const text = await extractAIResource(file);
+              setResource(file);
+              sessionStorage.setItem('aiResourceText', text);
+            } catch {
+              setResource(null);
+            }
           }}
         />
-        <IconButton onClick={() => sendMessage()} disabled={loading || !input.trim()}>
-          <SendIcon />
-        </IconButton>
+
+        {resource && (
+          <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+              📎 {resource.name}
+            </Typography>
+            <Chip
+              label="Remove"
+              size="small"
+              onDelete={() => setResource(null)}
+            />
+          </Box>
+        )}
+
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <IconButton
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            title="Attach PDF or image"
+          >
+            📎
+          </IconButton>
+
+          <TextField
+            fullWidth
+            size="small"
+            placeholder={resource ? 'Ask AI about this resource...' : 'Ask anything...'}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') sendMessage();
+            }}
+          />
+
+          <IconButton onClick={() => sendMessage()} disabled={loading || !input.trim()}>
+            <SendIcon />
+          </IconButton>
+        </Box>
       </Box>
     </Paper>
   );

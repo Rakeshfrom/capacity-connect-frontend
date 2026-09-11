@@ -692,9 +692,24 @@ export async function searchPublicContent(query: string) {
   };
 }
 
-export async function chatWithAI(message: string) {
-  return apiFetch('/ai/chat', {
+export async function chatWithAI(message: string, resourceText = '') {
+  const query = resourceText
+    ? `?resourceText=${encodeURIComponent(resourceText)}`
+    : '';
+
+  return apiFetch(`/ai/chat${query}`, {
     method: 'POST',
     body: JSON.stringify({ message }),
+  });
+}
+
+export async function extractAIResource(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return apiFetch('/ai/resource', {
+    method: 'POST',
+    body: formData,
+    headers: {},
   });
 }
