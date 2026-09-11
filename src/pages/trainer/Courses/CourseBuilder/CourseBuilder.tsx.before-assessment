@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -22,6 +23,14 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import DragIndicatorOutlinedIcon from '@mui/icons-material/DragIndicatorOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import OndemandVideoOutlinedIcon from '@mui/icons-material/OndemandVideoOutlined';
+import LinkOutlinedIcon from '@mui/icons-material/LinkOutlined';
+import SlideshowOutlinedIcon from '@mui/icons-material/SlideshowOutlined';
+import HeadphonesOutlinedIcon from '@mui/icons-material/HeadphonesOutlined';
+import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined';
+import CodeOutlinedIcon from '@mui/icons-material/CodeOutlined';
+import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
@@ -57,7 +66,48 @@ type CourseModule = {
 };
 
 
-
+const contentTypes = [
+  {
+    label: 'Document',
+    helper: 'PDF, notes, handouts',
+    icon: <DescriptionOutlinedIcon />,
+  },
+  {
+    label: 'Video',
+    helper: 'Recorded lecture or video URL',
+    icon: <OndemandVideoOutlinedIcon />,
+  },
+  {
+    label: 'External Link',
+    helper: 'Website or YouTube resource',
+    icon: <LinkOutlinedIcon />,
+  },
+  {
+    label: 'Presentation',
+    helper: 'Slides and presentations',
+    icon: <SlideshowOutlinedIcon />,
+  },
+  {
+    label: 'Audio',
+    helper: 'Lecture or podcast audio',
+    icon: <HeadphonesOutlinedIcon />,
+  },
+  {
+    label: 'Assessment',
+    helper: 'Create or attach assessment',
+    icon: <QuizOutlinedIcon />,
+  },
+  {
+    label: 'Interactive',
+    helper: 'SCORM or interactive package',
+    icon: <CodeOutlinedIcon />,
+  },
+  {
+    label: 'Text',
+    helper: 'Reading or instructions',
+    icon: <NotesOutlinedIcon />,
+  },
+];
 
 const CourseBuilder = () => {
   const navigate = useNavigate();
@@ -79,6 +129,7 @@ const CourseBuilder = () => {
   const [moduleTitle, setModuleTitle] = useState('');
   const [moduleDescription, setModuleDescription] = useState('');
 
+  const [contentMessage, setContentMessage] = useState('');
 
   const load = async () => {
     if (!id) return;
@@ -179,7 +230,11 @@ const CourseBuilder = () => {
     }
   };
 
-
+  const selectContentType = (label: string) => {
+    setContentMessage(
+      `${label} content uploader will be connected in the next step.`
+    );
+  };
 
   const selectedModule =
     modules.find((item) => item.id === selectedModuleId) ?? null;
@@ -451,7 +506,8 @@ const CourseBuilder = () => {
                       <Button
                         onClick={() => {
                           setSelectedModuleId(module.id);
-                                              }}
+                          setContentMessage('');
+                        }}
                         sx={{
                           flex: 1,
                           justifyContent: 'flex-start',
@@ -616,29 +672,136 @@ const CourseBuilder = () => {
                   </CardContent>
                 </Card>
 
-                  <Card>
-                          <CardContent>
-                            {selectedModule ? (
-                              <ModuleContentPanel
-                                courseId={id}
-                                moduleId={selectedModule.id}
-                              />
-                            ) : (
-                              <Box sx={{ py: 6, textAlign: 'center' }}>
-                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                  Select a module
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                  sx={{ mt: 0.5 }}
-                                >
-                                  Select a module to manage its learning content.
-                                </Typography>
-                              </Box>
-                            )}
-                          </CardContent>
-                        </Card>
+                <Card
+                  elevation={0}
+                  sx={{
+                    border: '1px solid #DCE8F0',
+                    borderRadius: 2,
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      sx={{
+                        justifyContent: 'space-between',
+                        alignItems: {
+                          xs: 'flex-start',
+                          sm: 'center',
+                        },
+                        gap: 1.5,
+                        mb: 2,
+                      }}
+                    >
+                      <Box>
+                        <Typography
+                          sx={{
+                            color: '#173F60',
+                            fontSize: '1.25rem',
+                            fontWeight: 800,
+                          }}
+                        >
+                          Add Learning Content
+                        </Typography>
+
+                        <Typography
+                          sx={{
+                            color: '#718594',
+                            mt: 0.4,
+                          }}
+                        >
+                          Choose any content type. Individual resources
+                          remain optional.
+                        </Typography>
+                      </Box>
+
+                      <Chip
+                        label="Content optional"
+                        size="small"
+                        sx={{
+                          bgcolor: '#F2F6F8',
+                          color: '#657887',
+                          fontWeight: 700,
+                        }}
+                      />
+                    </Stack>
+
+                    {contentMessage && (
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        {contentMessage}
+                      </Alert>
+                    )}
+
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: {
+                          xs: '1fr',
+                          sm: 'repeat(2, 1fr)',
+                          xl: 'repeat(4, 1fr)',
+                        },
+                        gap: 1.5,
+                      }}
+                    >
+                      {contentTypes.map((item) => (
+                        <Button
+                          key={item.label}
+                          onClick={() =>
+                            selectContentType(item.label)
+                          }
+                          sx={{
+                            minHeight: 112,
+                            p: 1.5,
+                            border: '1px solid #DCE8F0',
+                            borderRadius: 2,
+                            justifyContent: 'flex-start',
+                            alignItems: 'flex-start',
+                            textAlign: 'left',
+                            textTransform: 'none',
+                            color: '#173F60',
+                            bgcolor: '#FFFFFF',
+                            '&:hover': {
+                              bgcolor: '#F7FAFC',
+                              borderColor: '#B8CFDF',
+                            },
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 1.5,
+                              bgcolor: '#EAF4FB',
+                              color: '#0B5A91',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {item.icon}
+                          </Box>
+
+                          <Box sx={{ ml: 1.2 }}>
+                            <Typography sx={{ fontWeight: 800 }}>
+                              {item.label}
+                            </Typography>
+
+                            <Typography
+                              sx={{
+                                color: '#718594',
+                                fontSize: '0.78rem',
+                                mt: 0.35,
+                                lineHeight: 1.35,
+                              }}
+                            >
+                              {item.helper}
+                            </Typography>
+                          </Box>
+                        </Button>
+                      ))}
+                    </Box>
+                  </CardContent>
+                </Card>
 
                 <Card
                   elevation={0}
@@ -810,4 +973,3 @@ const CourseBuilder = () => {
 };
 
 export default CourseBuilder;
-import ModuleContentPanel from './ModuleContentPanel';
