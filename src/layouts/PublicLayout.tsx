@@ -8,6 +8,8 @@ import {
   IconButton,
   InputAdornment,
   Link,
+  Menu,
+  MenuItem,
   Popover,
   TextField,
   Toolbar,
@@ -16,6 +18,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import AccessibilityNewRoundedIcon from '@mui/icons-material/AccessibilityNewRounded';
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import GTranslate from '../components/GTranslate';
 
@@ -24,6 +27,9 @@ const PublicLayout = () => {
 
   const [search, setSearch] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [learningAnchor, setLearningAnchor] = useState<null | HTMLElement>(null);
+  const [assessmentAnchor, setAssessmentAnchor] = useState<null | HTMLElement>(null);
+  const [competencyAnchor, setCompetencyAnchor] = useState<null | HTMLElement>(null);
   const [accessibilityAnchor, setAccessibilityAnchor] = useState<null | HTMLElement>(null);
   const [accessibilityOptions, setAccessibilityOptions] = useState({
     largeText: false,
@@ -248,9 +254,110 @@ const PublicLayout = () => {
                 About
               </Button>
 
-              <Button component={NavLink} to="/courses" sx={navButtonSx}>
-                Courses
+              <Button
+                onClick={(event) => setLearningAnchor(event.currentTarget)}
+                sx={{
+                  ...navButtonSx,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
+              >
+                Learning
               </Button>
+
+              <Menu
+                anchorEl={learningAnchor}
+                open={Boolean(learningAnchor)}
+                onClose={() => setLearningAnchor(null)}
+              >
+                <MenuItem
+                  onClick={() => {
+                    setLearningAnchor(null);
+                    navigate('/courses');
+                  }}
+                >
+                  Explore Courses
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setLearningAnchor(null);
+                    navigate('/courses');
+                  }}
+                >
+                  Learning Programmes
+                </MenuItem>
+              </Menu>
+
+              <Button
+                onClick={(event) => setAssessmentAnchor(event.currentTarget)}
+                sx={{
+                  ...navButtonSx,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
+              >
+                Assessments
+              </Button>
+
+              <Menu
+                anchorEl={assessmentAnchor}
+                open={Boolean(assessmentAnchor)}
+                onClose={() => setAssessmentAnchor(null)}
+              >
+                <MenuItem
+                  onClick={() => {
+                    setAssessmentAnchor(null);
+                    navigate('/login');
+                  }}
+                >
+                  Online Assessments
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setAssessmentAnchor(null);
+                    navigate('/login');
+                  }}
+                >
+                  Assessment Results
+                </MenuItem>
+              </Menu>
+
+              <Button
+                onClick={(event) => setCompetencyAnchor(event.currentTarget)}
+                sx={{
+                  ...navButtonSx,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
+              >
+                Competencies
+              </Button>
+
+              <Menu
+                anchorEl={competencyAnchor}
+                open={Boolean(competencyAnchor)}
+                onClose={() => setCompetencyAnchor(null)}
+              >
+                <MenuItem
+                  onClick={() => {
+                    setCompetencyAnchor(null);
+                    navigate('/login');
+                  }}
+                >
+                  Competency Mapping
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setCompetencyAnchor(null);
+                    navigate('/login');
+                  }}
+                >
+                  Skill Development
+                </MenuItem>
+              </Menu>
             </Box>
 
             {/* Header utilities */}
@@ -262,22 +369,6 @@ const PublicLayout = () => {
                 flexShrink: 0,
               }}
             >
-              <Button
-                onClick={() => navigate('/search')}
-                startIcon={<SearchRoundedIcon sx={{ fontSize: 19 }} />}
-                sx={{
-                  ...navButtonSx,
-                  minWidth: 42,
-                  px: 1,
-                  '& .MuiButton-startIcon': { mr: 0.2 },
-                }}
-                aria-label="Search"
-              >
-                <Box component="span" sx={{ display: { md: 'none', lg: 'inline' } }}>
-                  Search
-                </Box>
-              </Button>
-
               <IconButton
                 onClick={(event) => setAccessibilityAnchor(event.currentTarget)}
                 aria-label="Accessibility options"
