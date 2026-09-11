@@ -483,6 +483,24 @@ const ManageCourse = () => {
                 Course Content
               </Typography>
 
+              <Button
+                fullWidth
+                variant="contained"
+                startIcon={<EditOutlinedIcon />}
+                onClick={() => navigate(`/trainer/courses/${course.id}/builder`)}
+                sx={{
+                  mt: 2,
+                  mb: 1.5,
+                  py: 1.2,
+                  bgcolor: '#0B5A91',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  '&:hover': { bgcolor: '#084873' },
+                }}
+              >
+                Open Course Builder
+              </Button>
+
               {[
                 {
                   label: 'Learning Resources',
@@ -501,6 +519,11 @@ const ManageCourse = () => {
                   <Button
                     fullWidth
                     startIcon={item.icon}
+                    onClick={() => {
+                      if (item.label === 'Learning Resources') {
+                        navigate(`/trainer/courses/${course.id}/builder`);
+                      }
+                    }}
                     sx={{
                       justifyContent: 'flex-start',
                       color: '#0B5A91',

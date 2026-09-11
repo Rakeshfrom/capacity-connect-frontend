@@ -11,12 +11,19 @@ import {
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { getAssessment, getAttemptsByTrainee } from '../../../services/api';
+import {
+  getAssessment,
+  getAttemptsByTrainee,
+  getEnrollments,
+  getMyCertificates,
+  issueCertificate,
+} from '../../../services/api';
 
 type Assessment = {
   id: number;
   title: string;
   description?: string;
+  courseId: number;
 };
 
 type Attempt = {
@@ -30,6 +37,22 @@ type Attempt = {
   submittedAt?: string;
 };
 
+type Enrollment = {
+  id: number;
+  traineeId: number;
+  courseId: number;
+  status: string;
+  progress: number;
+};
+
+type Certificate = {
+  id: number;
+  traineeId: number;
+  courseId: number;
+  certificateNumber: string;
+  status: 'ISSUED' | 'REVOKED';
+};
+
 
 export default function AssessmentResult() {
   const { assessmentId } = useParams();
@@ -37,6 +60,10 @@ export default function AssessmentResult() {
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
+  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+  const [certificate, setCertificate] = useState<Certificate | null>(null);
+  const [issuingCertificate, setIssuingCertificate] = useState(false);
+  const [certificateMessage, setCertificateMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,9 +71,16 @@ export default function AssessmentResult() {
       try {
         const id = Number(assessmentId);
 
-        const [assessmentData, attempts] = await Promise.all([
+        const [
+          assessmentData,
+          attempts,
+          enrollmentData,
+          certificateData,
+        ] = await Promise.all([
           getAssessment(id),
           getAttemptsByTrainee(),
+          getEnrollments(),
+          getMyCertificates(),
         ]);
 
         const completedAttempts = attempts
@@ -62,6 +96,20 @@ export default function AssessmentResult() {
 
         setAssessment(assessmentData);
         setAttempt(completedAttempts[0] || null);
+
+        const currentEnrollment = enrollmentData.find(
+          (item: Enrollment) =>
+            Number(item.courseId) === Number(assessmentData.courseId)
+        );
+
+        const currentCertificate = certificateData.find(
+          (item: Certificate) =>
+            Number(item.courseId) === Number(assessmentData.courseId) &&
+            item.status === 'ISSUED'
+        );
+
+        setEnrollment(currentEnrollment || null);
+        setCertificate(currentCertificate || null);
       } catch (error) {
         console.error('Failed to load assessment result', error);
       } finally {
@@ -71,6 +119,32 @@ export default function AssessmentResult() {
 
     loadResult();
   }, [assessmentId]);
+
+  const handleIssueCertificate = async () => {
+    if (!assessment || !enrollment || attempt?.result !== 'PASSED') {
+      return;
+    }
+
+    setIssuingCertificate(true);
+    setCertificateMessage('');
+
+    try {
+      const issued = await issueCertificate(
+        enrollment.traineeId,
+        assessment.courseId
+      );
+
+      setCertificate(issued);
+      setCertificateMessage('Certificate issued successfully.');
+    } catch (error) {
+      console.error('Failed to issue certificate:', error);
+      setCertificateMessage(
+        'Certificate is not available yet. Complete the course and pass all required assessments.'
+      );
+    } finally {
+      setIssuingCertificate(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -227,6 +301,65 @@ export default function AssessmentResult() {
           </Box>
         </CardContent>
       </Card>
+
+      {passed && enrollment && (
+        <Card sx={{ borderRadius: 3, mt: 3 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 700, color: '#173f67', mb: 1 }}
+            >
+              Course Certificate
+            </Typography>
+
+            {certificate ? (
+              <>
+                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                  Your certificate has been issued successfully.
+                </Typography>
+
+                <Button
+                  variant="contained"
+                  onClick={() => navigate('/trainee/certificates')}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  View Certificate
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                  Certificate issuance requires 100% course completion and
+                  passing all required assessments.
+                </Typography>
+
+                <Button
+                  variant="contained"
+                  onClick={handleIssueCertificate}
+                  disabled={issuingCertificate || enrollment.progress < 100}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  {issuingCertificate ? 'Issuing Certificate...' : 'Get Certificate'}
+                </Button>
+
+                {certificateMessage && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      mt: 2,
+                      color: certificateMessage.includes('successfully')
+                        ? '#177245'
+                        : '#B42318',
+                    }}
+                  >
+                    {certificateMessage}
+                  </Typography>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 }

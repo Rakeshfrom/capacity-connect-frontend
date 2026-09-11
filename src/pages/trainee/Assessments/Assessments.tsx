@@ -12,9 +12,10 @@ import {
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import {
-  getAssessments,
   getAttemptsByTrainee,
   getCourses,
+  getEnrollments,
+  getMyCourseAssessments,
 } from '../../../services/api';
 
 type Assessment = {
@@ -31,6 +32,14 @@ type Assessment = {
 type Course = {
   id: number;
   title: string;
+};
+
+type Enrollment = {
+  id: number;
+  traineeId: number;
+  courseId: number;
+  status: string;
+  progress: number;
 };
 
 type Attempt = {
@@ -55,15 +64,40 @@ const Assessments = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [assessmentData, courseData, attemptData] =
+        const [enrollmentData, courseData, attemptData] =
           await Promise.all([
-            getAssessments(),
+            getEnrollments(),
             getCourses(),
             getAttemptsByTrainee(),
           ]);
 
-        setAssessments(assessmentData);
-        setCourses(courseData);
+        const enrolledCourseIds = (enrollmentData as Enrollment[])
+          .filter((enrollment) => enrollment.status !== 'DROPPED')
+          .map((enrollment) => enrollment.courseId);
+
+        const assessmentLists = await Promise.all(
+          enrolledCourseIds.map((courseId) =>
+            getMyCourseAssessments(courseId)
+          )
+        );
+
+        const enrolledAssessments = assessmentLists
+          .flat()
+          .filter(
+            (assessment: Assessment) =>
+              assessment.status === 'PUBLISHED'
+          )
+          .filter(
+            (assessment: Assessment, index: number, array: Assessment[]) =>
+              array.findIndex((item) => item.id === assessment.id) === index
+          );
+
+        const enrolledCourses = (courseData as Course[]).filter((course) =>
+          enrolledCourseIds.includes(course.id)
+        );
+
+        setAssessments(enrolledAssessments);
+        setCourses(enrolledCourses);
         setAttempts(attemptData);
       } catch (error) {
         console.error('Failed to load assessments:', error);

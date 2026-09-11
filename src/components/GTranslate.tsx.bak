@@ -1,0 +1,62 @@
+import { useEffect } from 'react';
+import { Box } from '@mui/material';
+
+declare global {
+  interface Window {
+    gtranslateSettings?: Record<string, unknown>;
+  }
+}
+
+const GTranslate = () => {
+  useEffect(() => {
+    if (document.querySelector('script[data-gtranslate]')) return;
+
+    window.gtranslateSettings = {
+      default_language: 'en',
+      languages: ['en', 'hi'],
+      wrapper_selector: '#capacity-connect-language',
+      native_language_names: true,
+    };
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.gtranslate.net/widgets/latest/dropdown.js';
+    script.async = true;
+    script.setAttribute('data-gtranslate', 'true');
+    document.body.appendChild(script);
+  }, []);
+
+  return (
+    <Box
+      id="capacity-connect-language"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        minWidth: 88,
+        '& .gt_selector': {
+          width: 'auto',
+          minWidth: 88,
+          height: 36,
+          px: 1.2,
+          border: '1px solid #C9D8E3',
+          borderRadius: 1.5,
+          background: '#fff',
+          color: '#234B66',
+          fontSize: '0.82rem',
+          fontWeight: 600,
+          outline: 'none',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        },
+        '& .gt_selector:hover': {
+          borderColor: '#075B91',
+        },
+        '& .gt_selector:focus': {
+          borderColor: '#075B91',
+          boxShadow: '0 0 0 2px rgba(7,91,145,0.10)',
+        },
+      }}
+    />
+  );
+};
+
+export default GTranslate;

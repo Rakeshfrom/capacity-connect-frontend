@@ -10,6 +10,12 @@ import {
 } from '@mui/material';
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
+import {
+  downloadCertificate,
+  getCourses,
+  getMyCertificates,
+  viewCertificate,
+} from '../../../services/api';
 
 type Certificate = {
   id: number;
@@ -25,9 +31,6 @@ type Course = {
   title: string;
 };
 
-const TRAINEE_ID = 1;
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL || ''}/api`;
-
 const Certificates = () => {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -36,17 +39,10 @@ const Certificates = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [certificateResponse, courseResponse] = await Promise.all([
-          fetch(`${API_BASE}/certificates/trainee/${TRAINEE_ID}`),
-          fetch(`${API_BASE}/courses`),
+        const [certificateData, courseData] = await Promise.all([
+          getMyCertificates(),
+          getCourses(),
         ]);
-
-        if (!certificateResponse.ok || !courseResponse.ok) {
-          throw new Error('Failed to load certificate data');
-        }
-
-        const certificateData = await certificateResponse.json();
-        const courseData = await courseResponse.json();
 
         setCertificates(certificateData);
         setCourses(courseData);
@@ -71,22 +67,20 @@ const Certificates = () => {
     (certificate) => certificate.status === 'ISSUED'
   ).length;
 
-  const viewCertificate = (id: number) => {
-    window.open(`${API_BASE}/certificates/${id}/view`, '_blank');
+  const handleViewCertificate = async (id: number) => {
+    try {
+      const blob = await viewCertificate(id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('Failed to view certificate:', error);
+    }
   };
 
-  const downloadCertificate = async (id: number) => {
+  const handleDownloadCertificate = async (id: number) => {
     try {
-      const response = await fetch(
-        `${API_BASE}/certificates/${id}/download`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to download certificate');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const blob = await downloadCertificate(id);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
 
       link.href = url;
@@ -95,7 +89,7 @@ const Certificates = () => {
       link.click();
       link.remove();
 
-      window.URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to download certificate:', error);
     }
@@ -271,7 +265,7 @@ const Certificates = () => {
 
                     <Button
                       variant="outlined"
-                      onClick={() => viewCertificate(certificate.id)}
+                      onClick={() => handleViewCertificate(certificate.id)}
                       disabled={certificate.status !== 'ISSUED'}
                     >
                       View Certificate
@@ -279,7 +273,7 @@ const Certificates = () => {
 
                     <Button
                       variant="contained"
-                      onClick={() => downloadCertificate(certificate.id)}
+                      onClick={() => handleDownloadCertificate(certificate.id)}
                       disabled={certificate.status !== 'ISSUED'}
                     >
                       Download

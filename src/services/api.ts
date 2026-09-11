@@ -77,6 +77,42 @@ export async function getCurrentUserProfilePhoto() {
     return response.blob();
 }
 
+export async function apiFetchBlob(path: string) {
+  if (keycloak.authenticated) {
+    try {
+      await keycloak.updateToken(30);
+    } catch {
+      await keycloak.login();
+      throw new Error('Authentication required');
+    }
+  }
+
+  const headers = new Headers();
+
+  if (keycloak.token) {
+    headers.set('Authorization', `Bearer ${keycloak.token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers,
+  });
+
+  if (response.status === 401) {
+    await keycloak.login();
+    throw new Error('Authentication required');
+  }
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+
+  return response.blob();
+}
+
+export async function getDepartments() {
+  return apiFetch('/departments');
+}
+
 export async function getCourses() {
     return apiFetch('/courses');
 }
@@ -95,6 +131,12 @@ export async function getQuestionsByAssessment(assessmentId: number) {
 
 export async function getEnrollments() {
     return apiFetch('/enrollments/me');
+}
+
+export async function enrollInCourse(courseId: number) {
+    return apiFetch(`/enrollments/me/${courseId}`, {
+        method: 'POST',
+    });
 }
 
 export async function getAttemptsByTrainee() {
@@ -160,6 +202,14 @@ export async function getAssessmentsByCourse(courseId: number) {
   return apiFetch(`/assessments/course/${courseId}`);
 }
 
+export async function getMyCourseResources(courseId: number) {
+  return apiFetch(`/trainer-resources/trainee/course/${courseId}`);
+}
+
+export async function getMyCourseAssessments(courseId: number) {
+  return apiFetch(`/assessments/trainee/course/${courseId}`);
+}
+
 export async function getEnrollmentsByCourse(courseId: number) {
   return apiFetch(`/enrollments/course/${courseId}`);
 }
@@ -198,8 +248,74 @@ export async function getTrainerTraineeDetail(
   return apiFetch(`/trainer-trainees/trainer/${trainerId}/trainee/${traineeId}`);
 }
 
+
+export async function getCourseModules(courseId: number) {
+  return apiFetch(`/course-modules/course/${courseId}`);
+}
+
+export async function createCourseModule(
+  courseId: number,
+  data: {
+    title: string;
+    description?: string;
+    orderIndex?: number;
+  }
+) {
+  return apiFetch(`/course-modules/course/${courseId}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCourseModule(
+  id: number,
+  data: {
+    title: string;
+    description?: string;
+    orderIndex?: number;
+  }
+) {
+  return apiFetch(`/course-modules/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCourseModule(id: number) {
+  return apiFetch(`/course-modules/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getTrainerResources(trainerId: number) {
   return apiFetch(`/trainer-resources/trainer/${trainerId}`);
+}
+
+export async function getCourseResources(courseId: number) {
+  return apiFetch(`/trainer-resources/course/${courseId}`);
+}
+
+export async function uploadCourseResource(data: {
+  trainerId: number;
+  courseId: number;
+  title: string;
+  description?: string;
+  resourceType: string;
+  file: File;
+}) {
+  const formData = new FormData();
+
+  formData.append('trainerId', String(data.trainerId));
+  formData.append('courseId', String(data.courseId));
+  formData.append('title', data.title);
+  formData.append('description', data.description || '');
+  formData.append('resourceType', data.resourceType);
+  formData.append('file', data.file);
+
+  return apiFetch('/trainer-resources/upload', {
+    method: 'POST',
+    body: formData,
+  });
 }
 
 export async function getTrainerResourceCourses(trainerId: number) {
@@ -301,6 +417,14 @@ export async function issueCertificate(traineeId: number, courseId: number) {
     `/certificates/issue?traineeId=${traineeId}&courseId=${courseId}`,
     { method: 'POST' },
   );
+}
+
+export async function viewCertificate(id: number) {
+  return apiFetchBlob(`/certificates/${id}/view`);
+}
+
+export async function downloadCertificate(id: number) {
+  return apiFetchBlob(`/certificates/${id}/download`);
 }
 
 export async function revokeCertificate(id: number) {
@@ -486,4 +610,41 @@ export async function reviewTrainerApplication(
             adminComment,
         }),
     });
+}
+
+export async function searchPublicContent(query: string) {
+  const [courses, announcements] = await Promise.all([
+    getCourses(),
+    getPublishedAnnouncements(),
+  ]);
+
+  const q = query.trim().toLowerCase();
+
+  const filteredCourses = (courses || []).filter((course: any) =>
+    [
+      course.title,
+      course.description,
+      course.category,
+      course.level,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(q))
+  );
+
+  const filteredAnnouncements = (announcements || []).filter(
+    (announcement: any) =>
+      [
+        announcement.title,
+        announcement.description,
+        announcement.audience,
+        announcement.type,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q))
+  );
+
+  return {
+    courses: filteredCourses,
+    announcements: filteredAnnouncements,
+  };
 }

@@ -8,66 +8,78 @@ import {
   Typography,
 } from '@mui/material';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import { useEffect, useMemo, useState } from 'react';
+import { getCourses } from '../../../services/api';
 import CourseCard from './components/CourseCard';
 
-const courses = [
-  {
-    courseId: 'meteorological-science',
-    category: 'Meteorology',
-    title: 'Foundations of Meteorological Science',
-    description:
-      'Build core knowledge of meteorological concepts through structured learning modules.',
-    duration: '6 Weeks',
-    level: 'Beginner',
-  },
-  {
-    courseId: 'climate-science',
-    category: 'Climate',
-    title: 'Climate Science & Applications',
-    description:
-      'Explore climate concepts, analysis methods and practical applications.',
-    duration: '5 Weeks',
-    level: 'Intermediate',
-  },
-  {
-    courseId: 'weather-services',
-    category: 'Weather Services',
-    title: 'Weather Forecasting & Services',
-    description:
-      'Develop knowledge of forecasting workflows, products and operational services.',
-    duration: '8 Weeks',
-    level: 'Intermediate',
-  },
-  {
-    courseId: 'meteorological-data-analysis',
-    category: 'Data & Technology',
-    title: 'Meteorological Data Analysis',
-    description:
-      'Learn methods for working with meteorological datasets and analytical workflows.',
-    duration: '6 Weeks',
-    level: 'Intermediate',
-  },
-  {
-    courseId: 'climate-data-risk-assessment',
-    category: 'Climate',
-    title: 'Climate Data & Risk Assessment',
-    description:
-      'Understand climate data, variability and approaches to climate risk assessment.',
-    duration: '7 Weeks',
-    level: 'Advanced',
-  },
-  {
-    courseId: 'numerical-weather-prediction',
-    category: 'Forecasting',
-    title: 'Numerical Weather Prediction',
-    description:
-      'Develop an understanding of numerical prediction systems and their applications.',
-    duration: '8 Weeks',
-    level: 'Advanced',
-  },
-];
+type Course = {
+  id: number;
+  category?: string;
+  title?: string;
+  description?: string;
+  durationHours?: number;
+  duration?: string;
+  level?: string;
+};
 
 const Courses = () => {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('all');
+  const [level, setLevel] = useState('all');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getCourses()
+      .then((data) => setCourses(Array.isArray(data) ? data : []))
+      .catch(() => setCourses([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const categories = useMemo(() => {
+    return Array.from(
+      new Set(
+        courses
+          .map((course) => course.category)
+          .filter(Boolean)
+          .map((value) => String(value))
+      )
+    );
+  }, [courses]);
+
+  const levels = useMemo(() => {
+    return Array.from(
+      new Set(
+        courses
+          .map((course) => course.level)
+          .filter(Boolean)
+          .map((value) => String(value))
+      )
+    );
+  }, [courses]);
+
+  const filteredCourses = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return courses.filter((course) => {
+      const matchesSearch =
+        !query ||
+        `${course.title ?? ''} ${course.description ?? ''} ${course.category ?? ''}`
+          .toLowerCase()
+          .includes(query);
+
+      const matchesCategory =
+        category === 'all' ||
+        String(course.category ?? '').toLowerCase() === category.toLowerCase();
+
+      const matchesLevel =
+        level === 'all' ||
+        String(course.level ?? '').toLowerCase() === level.toLowerCase();
+
+      return matchesSearch && matchesCategory && matchesLevel;
+    });
+  }, [courses, search, category, level]);
+
   return (
     <Box sx={{ bgcolor: '#F5F8FA', minHeight: '100%' }}>
       <Box
@@ -125,6 +137,8 @@ const Courses = () => {
         >
           <TextField
             fullWidth
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search courses..."
             slotProps={{
               input: {
@@ -140,26 +154,31 @@ const Courses = () => {
           <TextField
             select
             label="Category"
-            defaultValue="all"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
             sx={{ width: { xs: '100%', md: 220 } }}
           >
             <MenuItem value="all">All categories</MenuItem>
-            <MenuItem value="meteorology">Meteorology</MenuItem>
-            <MenuItem value="climate">Climate</MenuItem>
-            <MenuItem value="forecasting">Forecasting</MenuItem>
-            <MenuItem value="technology">Data & Technology</MenuItem>
+            {categories.map((item) => (
+              <MenuItem key={item} value={item}>
+                {item}
+              </MenuItem>
+            ))}
           </TextField>
 
           <TextField
             select
             label="Level"
-            defaultValue="all"
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
             sx={{ width: { xs: '100%', md: 180 } }}
           >
             <MenuItem value="all">All levels</MenuItem>
-            <MenuItem value="beginner">Beginner</MenuItem>
-            <MenuItem value="intermediate">Intermediate</MenuItem>
-            <MenuItem value="advanced">Advanced</MenuItem>
+            {levels.map((item) => (
+              <MenuItem key={item} value={item}>
+                {item}
+              </MenuItem>
+            ))}
           </TextField>
         </Stack>
 
@@ -170,8 +189,31 @@ const Courses = () => {
             fontWeight: 600,
           }}
         >
-          6 learning programmes
+          {loading
+            ? 'Loading learning programmes...'
+            : `${filteredCourses.length} learning programme${
+                filteredCourses.length === 1 ? '' : 's'
+              }`}
         </Typography>
+
+        {!loading && filteredCourses.length === 0 && (
+          <Box
+            sx={{
+              py: 8,
+              textAlign: 'center',
+              border: '1px dashed #C9D8E3',
+              borderRadius: 2,
+              bgcolor: '#fff',
+            }}
+          >
+            <Typography sx={{ color: '#536A7B', fontWeight: 600 }}>
+              No courses found
+            </Typography>
+            <Typography sx={{ color: '#80909D', mt: 0.5 }}>
+              Try a different search term or filter.
+            </Typography>
+          </Box>
+        )}
 
         <Box
           sx={{
@@ -184,8 +226,24 @@ const Courses = () => {
             gap: { xs: 2, md: 2.5 },
           }}
         >
-          {courses.map((course) => (
-            <CourseCard key={course.title} {...course} />
+          {filteredCourses.map((course) => (
+            <CourseCard
+              key={course.id}
+              courseId={String(course.id)}
+              category={course.category ?? 'Learning Programme'}
+              title={course.title ?? 'Untitled Course'}
+              description={
+                course.description ??
+                'Structured learning programme available through Capacity Connect.'
+              }
+              duration={
+                course.duration ??
+                (course.durationHours
+                  ? `${course.durationHours} Hours`
+                  : 'Self-paced')
+              }
+              level={course.level ?? 'General'}
+            />
           ))}
         </Box>
       </Container>
