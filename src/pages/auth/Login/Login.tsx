@@ -2,7 +2,22 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import keycloak from '../../../services/keycloak';
-import { getCurrentUser } from '../../../services/api';
+
+const getDashboard = () => {
+  const token = keycloak.tokenParsed as {
+    realm_access?: { roles?: string[] };
+    resource_access?: Record<string, { roles?: string[] }>;
+  } | undefined;
+
+  const roles = new Set([
+    ...(token?.realm_access?.roles ?? []),
+    ...(token?.resource_access?.['capacity-connect-frontend']?.roles ?? []),
+  ]);
+
+  if (roles.has('ADMIN')) return '/admin/dashboard';
+  if (roles.has('TRAINER')) return '/trainer/dashboard';
+  return '/trainee/dashboard';
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,22 +32,12 @@ const Login = () => {
         return;
       }
 
-      try {
-        const user = await getCurrentUser();
-
-        if (user.role === 'ADMIN') {
-          navigate('/admin/dashboard', { replace: true });
-        } else if (user.role === 'TRAINER') {
-          navigate('/trainer/dashboard', { replace: true });
-        } else {
-          navigate('/trainee/dashboard', { replace: true });
-        }
-      } catch (error) {
-        console.error('Failed to load authenticated user:', error);
-      }
+      navigate(getDashboard(), { replace: true });
     };
 
-    handleLogin();
+    handleLogin().catch((error) => {
+      console.error('Login failed:', error);
+    });
   }, [navigate]);
 
   return (
@@ -48,7 +53,7 @@ const Login = () => {
     >
       <CircularProgress />
       <Typography color="text.secondary">
-        Loading your account...
+        Signing you in...
       </Typography>
     </Box>
   );
