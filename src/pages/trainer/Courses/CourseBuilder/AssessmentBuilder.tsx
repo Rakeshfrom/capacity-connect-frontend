@@ -106,7 +106,7 @@ const AssessmentBuilder = ({
         description: description.trim(),
         timeLimitMinutes: timeLimit,
         passingPercentage,
-        creationMode: mode,
+        status: 'DRAFT',
       });
 
       const id = Number(result.id);
