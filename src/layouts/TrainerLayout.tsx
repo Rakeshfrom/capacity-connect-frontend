@@ -18,6 +18,7 @@ import {
   LogoutOutlined,
   MenuOutlined,
   NotificationsOutlined,
+  SmartToyOutlined,
   PersonOutlined,
   PeopleOutlined,
   QuizOutlined,
@@ -38,6 +39,7 @@ const menuItems = [
   { label: 'Trainees', path: '/trainer/trainees', icon: <PeopleOutlined /> },
   { label: 'Resource Library', path: '/trainer/library', icon: <FolderOutlined /> },
   { label: 'Analytics', path: '/trainer/analytics', icon: <AnalyticsOutlined /> },
+  { label: 'AI Assistant', path: '/trainer/ai', icon: <SmartToyOutlined />, isNew: true },
 ];
 
 const TrainerLayout = () => {
@@ -123,7 +125,26 @@ const TrainerLayout = () => {
               </ListItemIcon>
 
               {(!collapsed || isMobile) && (
-                <ListItemText primary={item.label} />
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', gap: 1 }}>
+                  <ListItemText primary={item.label} />
+                  {item.isNew && (
+                    <Box
+                      component="span"
+                      sx={{
+                        bgcolor: '#ef4444',
+                        color: '#fff',
+                        fontSize: 9,
+                        fontWeight: 800,
+                        px: 0.7,
+                        py: 0.25,
+                        borderRadius: 1,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      NEW
+                    </Box>
+                  )}
+                </Box>
               )}
             </ListItemButton>
           );

@@ -91,6 +91,7 @@ const AppRoutes = () => {
         <Route path="/trainee/notifications" element={<Notifications />} />
         <Route path="/trainee/certificates" element={<Certificates />} />
         <Route path="/trainee/ai" element={<AiChatbot />} />
+        <Route path="/trainer/ai" element={<AiChatbot />} />
       </Route>
 
       <Route
