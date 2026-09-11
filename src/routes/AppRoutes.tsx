@@ -26,6 +26,7 @@ import TrainerLibrary from '../pages/trainee/TrainerLibrary/TrainerLibrary';
 import Feedback from '../pages/trainee/Feedback/Feedback';
 import Notifications from '../pages/trainee/Notifications/Notifications';
 import Certificates from '../pages/trainee/Certificates/Certificates';
+import AiChatbot from '../components/AiChatbot';
 
 import TrainerDashboard from '../pages/trainer/Dashboard/Dashboard';
 import TrainerProfile from '../pages/trainer/Profile/Profile';
@@ -89,6 +90,7 @@ const AppRoutes = () => {
         <Route path="/trainee/feedback" element={<Feedback />} />
         <Route path="/trainee/notifications" element={<Notifications />} />
         <Route path="/trainee/certificates" element={<Certificates />} />
+        <Route path="/trainee/ai" element={<AiChatbot />} />
       </Route>
 
       <Route

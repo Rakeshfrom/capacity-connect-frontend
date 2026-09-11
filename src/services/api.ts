@@ -691,3 +691,10 @@ export async function searchPublicContent(query: string) {
     announcements: filteredAnnouncements,
   };
 }
+
+export async function chatWithAI(message: string) {
+  return apiFetch('/ai/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+}
