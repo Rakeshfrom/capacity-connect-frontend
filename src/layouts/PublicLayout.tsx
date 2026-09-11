@@ -8,8 +8,7 @@ import {
   IconButton,
   InputAdornment,
   Link,
-  Menu,
-  MenuItem,
+  Popover,
   TextField,
   Toolbar,
   Typography,
@@ -17,7 +16,6 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import AccessibilityNewRoundedIcon from '@mui/icons-material/AccessibilityNewRounded';
-import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import GTranslate from '../components/GTranslate';
 
@@ -26,10 +24,13 @@ const PublicLayout = () => {
 
   const [search, setSearch] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [learningAnchor, setLearningAnchor] = useState<null | HTMLElement>(null);
-  const [resourcesAnchor, setResourcesAnchor] = useState<null | HTMLElement>(null);
-  const [assessmentAnchor, setAssessmentAnchor] = useState<null | HTMLElement>(null);
-  const [competencyAnchor, setCompetencyAnchor] = useState<null | HTMLElement>(null);
+  const [accessibilityAnchor, setAccessibilityAnchor] = useState<null | HTMLElement>(null);
+  const [accessibilityOptions, setAccessibilityOptions] = useState({
+    largeText: false,
+    highContrast: false,
+    underlineLinks: false,
+    reducedMotion: false,
+  });
 
   const submitSearch = () => {
     const value = search.trim();
@@ -47,13 +48,6 @@ const PublicLayout = () => {
       bgcolor: '#F2F7FA',
       color: '#075B91',
     },
-  };
-
-  const dropdownButtonSx = {
-    ...navButtonSx,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 0.2,
   };
 
   return (
@@ -240,10 +234,10 @@ const PublicLayout = () => {
             {/* Desktop navigation */}
             <Box
               sx={{
-                display: { xs: 'none', xl: 'flex' },
+                display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
+                gap: 0.25,
                 ml: 'auto',
-                gap: 0.15,
               }}
             >
               <Button component={NavLink} to="/" sx={navButtonSx}>
@@ -254,166 +248,133 @@ const PublicLayout = () => {
                 About
               </Button>
 
-              <Button
-                onClick={(event) => setLearningAnchor(event.currentTarget)}
-                sx={dropdownButtonSx}
-                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
-              >
-                Learning
-              </Button>
-              <Menu
-                anchorEl={learningAnchor}
-                open={Boolean(learningAnchor)}
-                onClose={() => setLearningAnchor(null)}
-              >
-                <MenuItem onClick={() => navigate('/courses')}>
-                  Explore Courses
-                </MenuItem>
-                <MenuItem onClick={() => navigate('/courses')}>
-                  Learning Programmes
-                </MenuItem>
-              </Menu>
-
-              <Button
-                onClick={(event) => setResourcesAnchor(event.currentTarget)}
-                sx={dropdownButtonSx}
-                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
-              >
-                Resources
-              </Button>
-              <Menu
-                anchorEl={resourcesAnchor}
-                open={Boolean(resourcesAnchor)}
-                onClose={() => setResourcesAnchor(null)}
-              >
-                <MenuItem onClick={() => navigate('/login')}>
-                  Digital Library
-                </MenuItem>
-                <MenuItem onClick={() => navigate('/login')}>
-                  Trainer Resources
-                </MenuItem>
-              </Menu>
-
-              <Button
-                onClick={(event) => setAssessmentAnchor(event.currentTarget)}
-                sx={dropdownButtonSx}
-                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
-              >
-                Assessments
-              </Button>
-              <Menu
-                anchorEl={assessmentAnchor}
-                open={Boolean(assessmentAnchor)}
-                onClose={() => setAssessmentAnchor(null)}
-              >
-                <MenuItem onClick={() => navigate('/login')}>
-                  Online Assessments
-                </MenuItem>
-                <MenuItem onClick={() => navigate('/login')}>
-                  Assessment Results
-                </MenuItem>
-              </Menu>
-
-              <Button
-                onClick={(event) => setCompetencyAnchor(event.currentTarget)}
-                sx={dropdownButtonSx}
-                endIcon={<KeyboardArrowDownRoundedIcon fontSize="small" />}
-              >
-                Competencies
-              </Button>
-              <Menu
-                anchorEl={competencyAnchor}
-                open={Boolean(competencyAnchor)}
-                onClose={() => setCompetencyAnchor(null)}
-              >
-                <MenuItem onClick={() => navigate('/login')}>
-                  Competency Mapping
-                </MenuItem>
-                <MenuItem onClick={() => navigate('/login')}>
-                  Skill Development
-                </MenuItem>
-              </Menu>
-
-              <Button
-                component={NavLink}
-                to="/announcements"
-                sx={navButtonSx}
-              >
-                Announcements
+              <Button component={NavLink} to="/courses" sx={navButtonSx}>
+                Courses
               </Button>
             </Box>
 
-            {/* Utility controls */}
+            {/* Header utilities */}
             <Box
               sx={{
                 display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
-                gap: 1,
-                ml: { md: 'auto', xl: 1.5 },
+                gap: 0.9,
+                flexShrink: 0,
               }}
             >
               <Button
-                component={NavLink}
-                to="/certificate-verification"
+                onClick={() => navigate('/search')}
+                startIcon={<SearchRoundedIcon sx={{ fontSize: 19 }} />}
                 sx={{
                   ...navButtonSx,
-                  display: { md: 'none', xl: 'inline-flex' },
-                  whiteSpace: 'nowrap',
+                  minWidth: 42,
+                  px: 1,
+                  '& .MuiButton-startIcon': { mr: 0.2 },
                 }}
+                aria-label="Search"
               >
-                Verify Certificate
+                <Box component="span" sx={{ display: { md: 'none', lg: 'inline' } }}>
+                  Search
+                </Box>
               </Button>
 
-              <Box
+              <IconButton
+                onClick={(event) => setAccessibilityAnchor(event.currentTarget)}
+                aria-label="Accessibility options"
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.25,
-                  px: 0.7,
+                  width: 38,
+                  height: 38,
                   border: '1px solid #D8E3EA',
                   borderRadius: 1.5,
                   color: '#496476',
+                  '&:hover': {
+                    bgcolor: '#F2F7FA',
+                    color: '#075B91',
+                  },
                 }}
-                aria-label="Text size controls"
               >
-                <AccessibilityNewRoundedIcon sx={{ fontSize: 17 }} />
-                <Button
-                  size="small"
-                  sx={{
-                    minWidth: 22,
-                    px: 0.3,
-                    color: '#496476',
-                    fontSize: '0.68rem',
-                    textTransform: 'none',
-                  }}
-                >
-                  A−
-                </Button>
-                <Button
-                  size="small"
-                  sx={{
-                    minWidth: 22,
-                    px: 0.3,
-                    color: '#496476',
-                    fontSize: '0.72rem',
-                    textTransform: 'none',
-                  }}
-                >
-                  A
-                </Button>
-                <Button
-                  size="small"
-                  sx={{
-                    minWidth: 22,
-                    px: 0.3,
-                    color: '#496476',
-                    fontSize: '0.8rem',
-                    textTransform: 'none',
-                  }}
-                >
-                  A+
-                </Button>
-              </Box>
+                <AccessibilityNewRoundedIcon sx={{ fontSize: 19 }} />
+              </IconButton>
+
+              <Popover
+                open={Boolean(accessibilityAnchor)}
+                anchorEl={accessibilityAnchor}
+                onClose={() => setAccessibilityAnchor(null)}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+              >
+                <Box sx={{ p: 2, width: 260 }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 750,
+                      color: '#173B5E',
+                      mb: 1.5,
+                    }}
+                  >
+                    Accessibility
+                  </Typography>
+
+                  {[
+                    ['largeText', 'Larger text'],
+                    ['highContrast', 'High contrast'],
+                    ['underlineLinks', 'Underline links'],
+                    ['reducedMotion', 'Reduce motion'],
+                  ].map(([key, label]) => (
+                    <Box
+                      key={key}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        py: 0.7,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ color: '#496476' }}
+                      >
+                        {label}
+                      </Typography>
+
+                      <input
+                        type="checkbox"
+                        checked={
+                          accessibilityOptions[
+                            key as keyof typeof accessibilityOptions
+                          ]
+                        }
+                        onChange={(event) =>
+                          setAccessibilityOptions((prev) => ({
+                            ...prev,
+                            [key]: event.target.checked,
+                          }))
+                        }
+                      />
+                    </Box>
+                  ))}
+
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => setAccessibilityAnchor(null)}
+                    sx={{
+                      mt: 1,
+                      bgcolor: '#075B91',
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    Apply
+                  </Button>
+                </Box>
+              </Popover>
 
               <GTranslate />
 
@@ -424,8 +385,8 @@ const PublicLayout = () => {
                 sx={{
                   borderColor: '#075B91',
                   color: '#075B91',
-                  px: 1.8,
-                  py: 1,
+                  px: 1.55,
+                  py: 0.95,
                   borderRadius: 1.5,
                   textTransform: 'none',
                   fontWeight: 700,
@@ -441,11 +402,12 @@ const PublicLayout = () => {
                 variant="contained"
                 sx={{
                   bgcolor: '#075B91',
-                  px: 2.2,
-                  py: 1,
+                  px: 1.8,
+                  py: 0.95,
                   borderRadius: 1.5,
                   textTransform: 'none',
                   fontWeight: 700,
+                  whiteSpace: 'nowrap',
                   boxShadow: '0 5px 14px rgba(7,91,145,0.18)',
                   '&:hover': {
                     bgcolor: '#064A75',
