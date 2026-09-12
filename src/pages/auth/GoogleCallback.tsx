@@ -2,13 +2,16 @@ import { useEffect } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import keycloak from '../../services/keycloak';
 import { getCurrentUser } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const GoogleCallback = () => {
+  const navigate = useNavigate();
+
   useEffect(() => {
     const completeLogin = async () => {
       try {
         if (!keycloak.authenticated) {
-          window.location.replace('/login');
+          navigate('/login', { replace: true });
           return;
         }
 
@@ -23,15 +26,15 @@ const GoogleCallback = () => {
               ? '/trainer/dashboard'
               : '/trainee/dashboard';
 
-        window.location.replace(dashboard);
+        navigate(dashboard, { replace: true });
       } catch (err) {
         console.error('Google authentication failed:', err);
-        window.location.replace('/login');
+        navigate('/login', { replace: true });
       }
     };
 
     completeLogin();
-  }, []);
+  }, [navigate]);
 
   return (
     <Box
