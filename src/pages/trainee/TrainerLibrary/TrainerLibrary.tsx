@@ -171,18 +171,59 @@ const TrainerLibrary = () => {
   const openResource = async (resource: Resource) => {
     try {
       if (resource.type === 'LINK' && resource.url) {
-        setViewerTitle(resource.title);
-        setViewerUrl(resource.url);
-        setViewerType('link');
-        setViewerOpen(true);
+        let url = resource.url.trim();
+
+        if (!/^https?:\/\//i.test(url)) {
+          url = `https://${url}`;
+        }
+
+        try {
+          const parsed = new URL(url);
+          const host = parsed.hostname.toLowerCase();
+          let embedUrl = url;
+
+          if (
+            host === 'youtube.com' ||
+            host === 'www.youtube.com' ||
+            host === 'm.youtube.com' ||
+            host === 'youtu.be'
+          ) {
+            let videoId = '';
+
+            if (host === 'youtu.be') {
+              videoId = parsed.pathname.replace(/^\/+/, '').split('/')[0];
+            } else if (parsed.pathname === '/watch') {
+              videoId = parsed.searchParams.get('v') || '';
+            } else if (parsed.pathname.startsWith('/shorts/')) {
+              videoId = parsed.pathname.split('/')[2] || '';
+            } else if (parsed.pathname.startsWith('/embed/')) {
+              videoId = parsed.pathname.split('/')[2] || '';
+            }
+
+            if (videoId) {
+              embedUrl = `https://www.youtube.com/embed/${videoId}`;
+            }
+          }
+
+          setViewerTitle(resource.title);
+          setViewerUrl(embedUrl);
+          setViewerType('link');
+          setViewerOpen(true);
+        } catch {
+          setViewerTitle(resource.title);
+          setViewerUrl(url);
+          setViewerType('link');
+          setViewerOpen(true);
+        }
+
         return;
       }
 
       const blob = await apiFetchBlob(`/trainee/resources/${resource.id}/file`);
-      const url = URL.createObjectURL(blob);
+      const fileUrl = URL.createObjectURL(blob);
 
       setViewerTitle(resource.title);
-      setViewerUrl(url);
+      setViewerUrl(fileUrl);
       setViewerType('file');
       setViewerOpen(true);
     } catch (error) {
@@ -581,11 +622,42 @@ const TrainerLibrary = () => {
           </Button>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 0, bgcolor: '#F5F8FA' }}>
+        <DialogContent sx={{ p: 0, bgcolor: '#F5F8FA', position: 'relative' }}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 10,
+              right: 16,
+              zIndex: 2,
+              bgcolor: '#fff',
+              borderRadius: 1,
+              boxShadow: 2,
+            }}
+          >
+            {viewerType === 'link' && viewerUrl && (
+              <Button
+                component="a"
+                href={viewerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                startIcon={<OpenInNewOutlinedIcon />}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  color: '#075B91',
+                }}
+              >
+                Open in New Tab
+              </Button>
+            )}
+          </Box>
+
           <Box
             component="iframe"
             src={viewerUrl}
             title={viewerTitle}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
             sx={{
               width: '100%',
               height: '100%',
