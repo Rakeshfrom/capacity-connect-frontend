@@ -49,6 +49,10 @@ const TrainerLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = () => {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith('capacity-connect.current-user'))
+      .forEach((key) => localStorage.removeItem(key));
+
     keycloak.logout({
       redirectUri: `${window.location.origin}/`,
     });

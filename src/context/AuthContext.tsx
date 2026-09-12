@@ -41,7 +41,7 @@ const getCacheKey = () =>
 
 const readCachedUser = (): CurrentUser | null => {
   try {
-    const value = sessionStorage.getItem(getCacheKey());
+    const value = localStorage.getItem(getCacheKey());
     return value ? JSON.parse(value) : null;
   } catch {
     return null;

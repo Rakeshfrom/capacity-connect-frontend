@@ -123,7 +123,12 @@ const AdminLayout = () => {
       <List sx={{ p: 1 }}>
         <Tooltip title={collapsed && !isMobile ? 'Logout' : ''} placement="right">
           <ListItemButton
-            onClick={() => keycloak.logout({ redirectUri: window.location.origin })}
+            onClick={() => {
+              Object.keys(localStorage)
+                .filter((key) => key.startsWith('capacity-connect.current-user'))
+                .forEach((key) => localStorage.removeItem(key));
+              keycloak.logout({ redirectUri: window.location.origin });
+            }}
             sx={{
               minHeight: 48,
               borderRadius: 1.5,
