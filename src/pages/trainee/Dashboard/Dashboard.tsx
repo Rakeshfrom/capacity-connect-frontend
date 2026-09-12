@@ -121,33 +121,49 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getEnrollments(),
-      getCourses(),
-      getAttemptsByTrainee(),
-      getMyCertificates(),
-      getPublishedAnnouncements().catch(() => []),
-    ])
-      .then(async ([enrollmentData, courseData, attemptData, certificateData, announcementData]) => {
+    const loadDashboard = async () => {
+      try {
+        const [
+          enrollmentData,
+          courseData,
+          attemptData,
+          certificateData,
+          announcementData,
+          resourceData,
+        ] = await Promise.all([
+          getEnrollments(),
+          getCourses(),
+          getAttemptsByTrainee(),
+          getMyCertificates(),
+          getPublishedAnnouncements().catch(() => []),
+          getMyStudyResources().catch(() => []),
+        ]);
+
         setEnrollments(enrollmentData || []);
         setCourses(courseData || []);
         setAttempts(attemptData || []);
         setCertificates(certificateData || []);
         setAnnouncements(announcementData || []);
-
-        const resourceLists = await getMyStudyResources().catch(() => []);
-        const extracted = Array.isArray(resourceLists) ? resourceLists : [];
-        if (extracted.length) {
-          setResources(extracted as Resource[]);
-        }
+        setResources(
+          Array.isArray(resourceData) ? (resourceData as Resource[]) : []
+        );
 
         const progress = (enrollmentData || []).map(
           (e: Enrollment) => e.progress || 0
         );
         const avg = progress.length
-          ? Math.round(progress.reduce((a: number, b: number) => a + b, 0) / progress.length)
+          ? Math.round(
+              progress.reduce(
+                (a: number, b: number) => a + b,
+                0
+              ) / progress.length
+            )
           : 0;
 
+        // Render the dashboard without waiting for AI.
+        setLoading(false);
+
+        // AI insight loads independently in the background.
         try {
           const response = await chatWithAI(
             `You are the learning coach inside an LMS dashboard.
@@ -169,11 +185,13 @@ Return plain text in 2 short sentences.`
         } catch {
           setAiInsight('');
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Failed to load trainee dashboard:', error);
-      })
-      .finally(() => setLoading(false));
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
   }, []);
 
   const enrolledCourses = useMemo(
@@ -375,7 +393,7 @@ Return plain text in 2 short sentences.`
 
           <Button
             component={RouterLink}
-            to="/ai-assistant"
+            to="/trainee/ai"
             variant="contained"
             startIcon={<AutoAwesomeOutlinedIcon />}
             sx={{
@@ -490,7 +508,7 @@ Return plain text in 2 short sentences.`
 
             <Button
               component={RouterLink}
-              to="/courses"
+              to="/trainee/courses"
               endIcon={<ArrowForwardIcon />}
               sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
             >
@@ -594,7 +612,7 @@ Return plain text in 2 short sentences.`
                   </Typography>
                   <Button
                     component={RouterLink}
-                    to="/courses"
+                    to="/trainee/courses"
                     endIcon={<ArrowForwardIcon />}
                     sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
                   >
@@ -631,7 +649,7 @@ Return plain text in 2 short sentences.`
 
               <Button
                 component={RouterLink}
-                to={`/courses/${nextCourse.courseId}`}
+                to={`/trainee/courses/${nextCourse.courseId}`}
                 variant="contained"
                 startIcon={<PlayCircleOutlineOutlinedIcon />}
                 sx={{
@@ -670,7 +688,7 @@ Return plain text in 2 short sentences.`
 
             <Button
               component={RouterLink}
-              to="/assessments"
+              to="/trainee/assessments"
               endIcon={<ArrowForwardIcon />}
               sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
             >
@@ -793,7 +811,7 @@ Return plain text in 2 short sentences.`
 
             <Button
               component={RouterLink}
-              to="/resources"
+              to="/trainee/trainer-library"
               endIcon={<ArrowForwardIcon />}
               sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
             >
@@ -966,7 +984,7 @@ Return plain text in 2 short sentences.`
 
             <Button
               component={RouterLink}
-              to="/certificates"
+              to="/trainee/certificates"
               endIcon={<ArrowForwardIcon />}
               sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
             >
@@ -1036,7 +1054,7 @@ Return plain text in 2 short sentences.`
 
             <Button
               component={RouterLink}
-              to="/announcements"
+              to="/trainee/notifications"
               endIcon={<ArrowForwardIcon />}
               sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
             >
@@ -1143,7 +1161,7 @@ Return plain text in 2 short sentences.`
 
               <Button
                 component={RouterLink}
-                to="/ai-assistant"
+                to="/trainee/ai"
                 endIcon={<ArrowForwardIcon />}
                 sx={{
                   mt: 1.5,
@@ -1416,7 +1434,7 @@ Return plain text in 2 short sentences.`
 
             <Button
               component={RouterLink}
-              to="/ai-assistant"
+              to="/trainee/ai"
               variant="contained"
               startIcon={<PsychologyOutlinedIcon />}
               sx={{
