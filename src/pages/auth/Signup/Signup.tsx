@@ -10,12 +10,10 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import GitHubIcon from '@mui/icons-material/GitHub';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import { getCurrentUser, registerAccount } from '../../../services/api';
 import { loginWithCredentials } from '../../../services/auth';
+import keycloak from '../../../services/keycloak';
 
 const passwordRule =
   /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -200,6 +198,18 @@ const Signup = () => {
             <Button
               variant="outlined"
               fullWidth
+              onClick={async () => {
+                try {
+                  sessionStorage.removeItem('capacity-connect.access-token');
+                  await keycloak.login({
+                    idpHint: 'google',
+                    redirectUri: `${window.location.origin}/login`,
+                  });
+                } catch (err) {
+                  console.error('Google signup failed:', err);
+                  setError('Google sign-up could not be started.');
+                }
+              }}
               sx={{
                 py: 1.15,
                 borderColor: '#C5D3DD',
@@ -212,51 +222,6 @@ const Signup = () => {
                 G
               </Box>
               Continue with Google
-            </Button>
-
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<GitHubIcon />}
-              sx={{
-                py: 1.15,
-                borderColor: '#C5D3DD',
-                color: '#244A66',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Continue with GitHub
-            </Button>
-
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<LinkedInIcon />}
-              sx={{
-                py: 1.15,
-                borderColor: '#C5D3DD',
-                color: '#244A66',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Continue with LinkedIn
-            </Button>
-
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<PhoneOutlinedIcon />}
-              sx={{
-                py: 1.15,
-                borderColor: '#C5D3DD',
-                color: '#244A66',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Continue with Phone
             </Button>
           </Stack>
 
