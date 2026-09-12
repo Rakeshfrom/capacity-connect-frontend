@@ -23,7 +23,6 @@ import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
-import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiFetchBlob } from '../../../services/api';
 import AiChatbot from '../../../components/AiChatbot';
 
@@ -48,8 +47,6 @@ const getIcon = (resource: Resource) => {
 };
 
 const TrainerLibrary = () => {
-  const navigate = useNavigate();
-
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -478,9 +475,17 @@ const TrainerLibrary = () => {
                     fullWidth
                     variant="contained"
                     startIcon={<AutoAwesomeOutlinedIcon />}
-                    onClick={() =>
-                      navigate(`/trainee/ai?resourceId=${resource.id}`)
-                    }
+                    onClick={() => {
+                      setAiResourceId(resource.id);
+                      setTimeout(() => {
+                        document
+                          .getElementById('resource-ai-chat')
+                          ?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start',
+                          });
+                      }, 50);
+                    }}
                     sx={{
                       bgcolor: '#075B91',
                       fontWeight: 600,
