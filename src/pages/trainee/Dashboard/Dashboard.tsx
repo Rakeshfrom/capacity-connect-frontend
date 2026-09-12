@@ -2,7 +2,6 @@ import {
   Avatar,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Container,
   Divider,
@@ -18,11 +17,12 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import LibraryBooksOutlinedIcon from '@mui/icons-material/LibraryBooksOutlined';
-import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
-import RadioButtonUncheckedOutlinedIcon from '@mui/icons-material/RadioButtonUncheckedOutlined';
+import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined';
+import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -30,6 +30,9 @@ import {
   getEnrollments,
   getAttemptsByTrainee,
   getMyCertificates,
+  getPublishedAnnouncements,
+  getMyStudyResource,
+  chatWithAI,
 } from '../../../services/api';
 
 interface Enrollment {
@@ -49,23 +52,62 @@ interface Attempt {
   id: number;
   assessmentId: number;
   result: string;
+  score?: number;
+  percentage?: number;
+  createdAt?: string;
+  submittedAt?: string;
 }
 
 interface Certificate {
   id: number;
   status: string;
+  title?: string;
+  courseTitle?: string;
+  issuedAt?: string;
 }
 
-const statCardSx = {
-  p: 2.5,
-  border: '1px solid #DCE6ED',
+interface Announcement {
+  id: number;
+  title?: string;
+  message?: string;
+  content?: string;
+  createdAt?: string;
+  publishedAt?: string;
+}
+
+interface Resource {
+  id: number;
+  title: string;
+  type?: string;
+  department?: string;
+  createdAt?: string;
+}
+
+interface ActivityDay {
+  date: string;
+  count: number;
+}
+
+const colors = {
+  navy: '#173F60',
+  blue: '#0B5A91',
+  lightBlue: '#EAF4FA',
+  text: '#657887',
+  border: '#DCE6ED',
+  bg: '#F4F8FB',
+  green: '#2E7D57',
+  lightGreen: '#EAF6F0',
+  orange: '#B56A00',
+  lightOrange: '#FFF4E5',
+  purple: '#7050A5',
+  lightPurple: '#F2ECFA',
+};
+
+const cardSx = {
+  border: `1px solid ${colors.border}`,
   borderRadius: 3,
-  bgcolor: '#FFFFFF',
-  transition: 'all .2s ease',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 8px 24px rgba(23,63,96,.08)',
-  },
+  bgcolor: '#fff',
+  boxShadow: '0 2px 10px rgba(23,63,96,.035)',
 };
 
 const Dashboard = () => {
@@ -73,6 +115,9 @@ const Dashboard = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [aiInsight, setAiInsight] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -81,12 +126,58 @@ const Dashboard = () => {
       getCourses(),
       getAttemptsByTrainee(),
       getMyCertificates(),
+      getPublishedAnnouncements().catch(() => []),
     ])
-      .then(([enrollmentData, courseData, attemptData, certificateData]) => {
-        setEnrollments(enrollmentData);
-        setCourses(courseData);
-        setAttempts(attemptData);
-        setCertificates(certificateData);
+      .then(async ([enrollmentData, courseData, attemptData, certificateData, announcementData]) => {
+        setEnrollments(enrollmentData || []);
+        setCourses(courseData || []);
+        setAttempts(attemptData || []);
+        setCertificates(certificateData || []);
+        setAnnouncements(announcementData || []);
+
+        const courseIds = (enrollmentData || []).slice(0, 5).map(
+          (e: Enrollment) => e.courseId
+        );
+
+        const resourceLists = await Promise.all(
+          courseIds.map((id: number) =>
+            getMyStudyResource(id).catch(() => null)
+          )
+        );
+
+        const extracted = resourceLists.filter(Boolean).flat();
+        if (extracted.length) {
+          setResources(extracted as Resource[]);
+        }
+
+        const progress = (enrollmentData || []).map(
+          (e: Enrollment) => e.progress || 0
+        );
+        const avg = progress.length
+          ? Math.round(progress.reduce((a: number, b: number) => a + b, 0) / progress.length)
+          : 0;
+
+        try {
+          const response = await chatWithAI(
+            `You are the learning coach inside an LMS dashboard.
+Based only on these trainee metrics, give one concise personalized learning insight and one next action.
+Enrolled courses: ${enrollmentData?.length || 0}
+Average course progress: ${avg}%
+Assessment attempts: ${attemptData?.length || 0}
+Pending assessments: ${(attemptData || []).filter((a: Attempt) => a.result?.toUpperCase() === 'PENDING').length}
+Certificates issued: ${(certificateData || []).filter((c: Certificate) => c.status?.toUpperCase() === 'ISSUED').length}
+Do not invent course names, scores, or facts.
+Return plain text in 2 short sentences.`
+          );
+
+          setAiInsight(
+            typeof response === 'string'
+              ? response
+              : response?.answer || ''
+          );
+        } catch {
+          setAiInsight('');
+        }
       })
       .catch((error) => {
         console.error('Failed to load trainee dashboard:', error);
@@ -97,9 +188,7 @@ const Dashboard = () => {
   const enrolledCourses = useMemo(
     () =>
       enrollments.map((enrollment) => {
-        const course = courses.find(
-          (item) => item.id === enrollment.courseId
-        );
+        const course = courses.find((item) => item.id === enrollment.courseId);
 
         return {
           ...enrollment,
@@ -119,39 +208,127 @@ const Dashboard = () => {
     : 0;
 
   const pendingAssessments = attempts.filter(
-    (attempt) => attempt.result?.toUpperCase() === 'PENDING'
+    (a) => a.result?.toUpperCase() === 'PENDING'
   ).length;
 
-  const passedAssessments = attempts.filter((attempt) =>
-    ['PASSED', 'PASS', 'COMPLETED'].includes(attempt.result?.toUpperCase())
+  const passedAssessments = attempts.filter((a) =>
+    ['PASSED', 'PASS', 'COMPLETED'].includes(a.result?.toUpperCase())
+  ).length;
+
+  const failedAssessments = attempts.filter((a) =>
+    ['FAILED', 'FAIL'].includes(a.result?.toUpperCase())
   ).length;
 
   const issuedCertificates = certificates.filter(
-    (certificate) => certificate.status?.toUpperCase() === 'ISSUED'
+    (c) => c.status?.toUpperCase() === 'ISSUED'
   ).length;
 
   const completedCourses = enrolledCourses.filter(
-    (course) => course.progress >= 100
+    (c) => c.progress >= 100
   ).length;
 
-  const activeCourses = enrolledCourses.filter(
-    (course) => course.progress > 0 && course.progress < 100
-  );
+  const averageScore = useMemo(() => {
+    const scores = attempts
+      .map((a) => a.percentage ?? a.score)
+      .filter((v): v is number => typeof v === 'number');
+
+    return scores.length
+      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+      : 0;
+  }, [attempts]);
+
+  const resourceByType = useMemo(() => {
+    const file = resources.filter((r) => r.type === 'FILE').length;
+    const link = resources.filter((r) => r.type === 'LINK').length;
+
+    return { file, link, total: resources.length };
+  }, [resources]);
 
   const nextCourse = [...enrolledCourses]
-    .filter((course) => course.progress < 100)
+    .filter((c) => c.progress < 100)
     .sort((a, b) => b.progress - a.progress)[0];
 
-  const progressLabel =
-    totalProgress === 0
-      ? 'Ready to start'
-      : totalProgress < 40
-        ? 'Getting started'
-        : totalProgress < 75
-          ? 'Good momentum'
-          : totalProgress < 100
-            ? 'Almost there'
-            : 'All caught up';
+  /*
+   * Portal activity tracker.
+   * Each dashboard visit records the current day locally.
+   * Learning actions add intensity to the same day.
+   */
+  const [activity, setActivity] = useState<ActivityDay[]>([]);
+
+  useEffect(() => {
+    const key = 'capacity-connect-learning-activity';
+    const today = new Date().toISOString().slice(0, 10);
+
+    let stored: ActivityDay[] = [];
+
+    try {
+      stored = JSON.parse(localStorage.getItem(key) || '[]');
+    } catch {
+      stored = [];
+    }
+
+    const current = stored.find((d) => d.date === today);
+
+    if (current) {
+      current.count = Math.min(4, current.count + 1);
+    } else {
+      stored.push({ date: today, count: 1 });
+    }
+
+    stored = stored
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-365);
+
+    localStorage.setItem(key, JSON.stringify(stored));
+    setActivity(stored);
+  }, []);
+
+  const activityMap = useMemo(
+    () => new Map(activity.map((item) => [item.date, item.count])),
+    [activity]
+  );
+
+  const heatmapDays = useMemo(() => {
+    const days: ActivityDay[] = [];
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+
+    for (let i = 364; i >= 0; i--) {
+      const date = new Date(end);
+      date.setDate(end.getDate() - i);
+
+      const key = date.toISOString().slice(0, 10);
+      days.push({
+        date: key,
+        count: activityMap.get(key) || 0,
+      });
+    }
+
+    return days;
+  }, [activityMap]);
+
+  const activeDays = activity.filter((d) => d.count > 0).length;
+
+  const currentStreak = useMemo(() => {
+    let streak = 0;
+
+    for (let i = 0; i < heatmapDays.length; i++) {
+      const item = heatmapDays[heatmapDays.length - 1 - i];
+
+      if (item.count > 0) streak++;
+      else break;
+    }
+
+    return streak;
+  }, [heatmapDays]);
+
+  const activityLevel = (count: number) => {
+    if (count <= 0) return '#E8EFF3';
+    if (count === 1) return '#CDE5D8';
+    if (count === 2) return '#8CC5A4';
+    if (count === 3) return '#51A678';
+    return '#258457';
+  };
 
   if (loading) {
     return (
@@ -161,24 +338,19 @@ const Dashboard = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          bgcolor: '#F4F8FB',
+          bgcolor: colors.bg,
         }}
       >
-        <CircularProgress sx={{ color: '#0B5A91' }} />
+        <CircularProgress sx={{ color: colors.blue }} />
       </Box>
     );
   }
 
   return (
-    <Box
-      sx={{
-        bgcolor: '#F4F8FB',
-        minHeight: '100vh',
-        py: { xs: 2.5, md: 4 },
-      }}
-    >
+    <Box sx={{ bgcolor: colors.bg, minHeight: '100vh', py: { xs: 2.5, md: 4 } }}>
       <Container maxWidth="xl">
-        {/* Header */}
+
+        {/* HEADER */}
         <Box
           sx={{
             display: 'flex',
@@ -192,24 +364,15 @@ const Dashboard = () => {
           <Box>
             <Typography
               sx={{
-                color: '#173F60',
+                color: colors.navy,
                 fontWeight: 800,
-                fontSize: { xs: '1.7rem', md: '2.15rem' },
-                letterSpacing: '-.02em',
+                fontSize: { xs: '1.75rem', md: '2.2rem' },
               }}
             >
               Welcome back 👋
             </Typography>
-
-            <Typography
-              sx={{
-                mt: 0.7,
-                color: '#657887',
-                fontSize: { xs: '.92rem', md: '1rem' },
-              }}
-            >
-              Continue your learning journey and build your professional
-              capabilities.
+            <Typography sx={{ color: colors.text, mt: .6 }}>
+              Your professional learning command centre.
             </Typography>
           </Box>
 
@@ -219,358 +382,141 @@ const Dashboard = () => {
             variant="contained"
             startIcon={<AutoAwesomeOutlinedIcon />}
             sx={{
-              bgcolor: '#0B5A91',
+              bgcolor: colors.blue,
               borderRadius: 2,
               px: 2.2,
               py: 1.1,
               textTransform: 'none',
               fontWeight: 700,
               boxShadow: 'none',
-              '&:hover': {
-                bgcolor: '#084873',
-                boxShadow: 'none',
-              },
+              '&:hover': { bgcolor: '#084873', boxShadow: 'none' },
             }}
           >
-            Ask AI Assistant
+            AI Learning Assistant
           </Button>
         </Box>
 
-        {/* Summary cards */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, 1fr)',
-              lg: 'repeat(4, 1fr)',
-            },
-            gap: 2,
-            mb: 3,
-          }}
-        >
-          <Paper elevation={0} sx={statCardSx}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Avatar
-                sx={{
-                  bgcolor: '#E8F3FA',
-                  color: '#0B5A91',
-                  width: 46,
-                  height: 46,
-                }}
-              >
-                <SchoolOutlinedIcon />
-              </Avatar>
-              <Box>
-                <Typography
-                  sx={{ color: '#173F60', fontSize: '1.65rem', fontWeight: 800 }}
-                >
-                  {enrolledCourses.length}
-                </Typography>
-                <Typography sx={{ color: '#657887', fontSize: '.88rem' }}>
-                  Enrolled courses
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-
-          <Paper elevation={0} sx={statCardSx}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Avatar
-                sx={{
-                  bgcolor: '#EAF6F0',
-                  color: '#2E7D57',
-                  width: 46,
-                  height: 46,
-                }}
-              >
-                <TrendingUpOutlinedIcon />
-              </Avatar>
-              <Box>
-                <Typography
-                  sx={{ color: '#173F60', fontSize: '1.65rem', fontWeight: 800 }}
-                >
-                  {totalProgress}%
-                </Typography>
-                <Typography sx={{ color: '#657887', fontSize: '.88rem' }}>
-                  Overall progress
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-
-          <Paper elevation={0} sx={statCardSx}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Avatar
-                sx={{
-                  bgcolor: '#FFF4E5',
-                  color: '#B56A00',
-                  width: 46,
-                  height: 46,
-                }}
-              >
-                <AssignmentOutlinedIcon />
-              </Avatar>
-              <Box>
-                <Typography
-                  sx={{ color: '#173F60', fontSize: '1.65rem', fontWeight: 800 }}
-                >
-                  {pendingAssessments}
-                </Typography>
-                <Typography sx={{ color: '#657887', fontSize: '.88rem' }}>
-                  Pending assessments
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-
-          <Paper elevation={0} sx={statCardSx}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Avatar
-                sx={{
-                  bgcolor: '#F2ECFA',
-                  color: '#7050A5',
-                  width: 46,
-                  height: 46,
-                }}
-              >
-                <WorkspacePremiumOutlinedIcon />
-              </Avatar>
-              <Box>
-                <Typography
-                  sx={{ color: '#173F60', fontSize: '1.65rem', fontWeight: 800 }}
-                >
-                  {issuedCertificates}
-                </Typography>
-                <Typography sx={{ color: '#657887', fontSize: '.88rem' }}>
-                  Certificates earned
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-
-        {/* Main overview */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '1.7fr 1fr' },
-            gap: 3,
-            mb: 3,
-          }}
-        >
-          {/* Continue learning */}
-          <Paper
-            elevation={0}
+        {/* TOP SNAPSHOT */}
+        <Paper elevation={0} sx={{ ...cardSx, p: { xs: 2, md: 3 }, mb: 3 }}>
+          <Box
             sx={{
-              p: { xs: 2.5, md: 3 },
-              border: '1px solid #DCE6ED',
-              borderRadius: 3,
-              bgcolor: '#FFFFFF',
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                lg: 'repeat(4, 1fr)',
+              },
+              gap: 2,
             }}
           >
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 2,
-                mb: 2.5,
-              }}
-            >
-              <Box>
-                <Typography
-                  sx={{ color: '#173F60', fontWeight: 800, fontSize: '1.15rem' }}
-                >
-                  Continue learning
-                </Typography>
-                <Typography sx={{ color: '#657887', mt: .4, fontSize: '.88rem' }}>
-                  Pick up where you left off.
-                </Typography>
-              </Box>
-
-              <Button
-                component={RouterLink}
-                to="/courses"
-                endIcon={<ArrowForwardIcon />}
-                sx={{
-                  color: '#0B5A91',
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                My courses
-              </Button>
-            </Box>
-
-            {nextCourse ? (
+            {[
+              {
+                icon: <SchoolOutlinedIcon />,
+                value: enrolledCourses.length,
+                label: 'Enrolled courses',
+                bg: colors.lightBlue,
+                fg: colors.blue,
+              },
+              {
+                icon: <TrendingUpOutlinedIcon />,
+                value: `${totalProgress}%`,
+                label: 'Overall progress',
+                bg: colors.lightGreen,
+                fg: colors.green,
+              },
+              {
+                icon: <AssignmentOutlinedIcon />,
+                value: pendingAssessments,
+                label: 'Pending assessments',
+                bg: colors.lightOrange,
+                fg: colors.orange,
+              },
+              {
+                icon: <WorkspacePremiumOutlinedIcon />,
+                value: issuedCertificates,
+                label: 'Certificates earned',
+                bg: colors.lightPurple,
+                fg: colors.purple,
+              },
+            ].map((item) => (
               <Box
+                key={item.label}
                 sx={{
-                  p: 2.2,
-                  borderRadius: 2.5,
-                  bgcolor: '#F5F9FC',
-                  border: '1px solid #E0EAF0',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    gap: 2,
-                    justifyContent: 'space-between',
-                    alignItems: { xs: 'stretch', sm: 'center' },
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <Avatar
-                      variant="rounded"
-                      sx={{
-                        bgcolor: '#DCEEF8',
-                        color: '#0B5A91',
-                        width: 50,
-                        height: 50,
-                      }}
-                    >
-                      <MenuBookOutlinedIcon />
-                    </Avatar>
-
-                    <Box>
-                      <Typography
-                        sx={{
-                          color: '#173F60',
-                          fontWeight: 750,
-                          lineHeight: 1.3,
-                        }}
-                      >
-                        {nextCourse.title}
-                      </Typography>
-                      <Typography
-                        sx={{ color: '#718392', fontSize: '.82rem', mt: .3 }}
-                      >
-                        {nextCourse.category}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Chip
-                    label={`${nextCourse.progress}% complete`}
-                    sx={{
-                      alignSelf: { xs: 'flex-start', sm: 'center' },
-                      bgcolor: '#E8F3FA',
-                      color: '#0B5A91',
-                      fontWeight: 700,
-                    }}
-                  />
-                </Box>
-
-                <Box sx={{ mt: 2 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={nextCourse.progress}
-                    sx={{
-                      height: 8,
-                      borderRadius: 10,
-                      bgcolor: '#DCE7EE',
-                      '& .MuiLinearProgress-bar': {
-                        borderRadius: 10,
-                        bgcolor: '#0B5A91',
-                      },
-                    }}
-                  />
-                </Box>
-
-                <Button
-                  component={RouterLink}
-                  to={`/courses/${nextCourse.courseId}`}
-                  variant="contained"
-                  startIcon={<PlayCircleOutlineOutlinedIcon />}
-                  sx={{
-                    mt: 2,
-                    bgcolor: '#0B5A91',
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    boxShadow: 'none',
-                    '&:hover': {
-                      bgcolor: '#084873',
-                      boxShadow: 'none',
-                    },
-                  }}
-                >
-                  Continue course
-                </Button>
-              </Box>
-            ) : (
-              <Box
-                sx={{
-                  py: 5,
-                  textAlign: 'center',
-                  border: '1px dashed #C9D8E2',
+                  p: 2,
                   borderRadius: 2.5,
                   bgcolor: '#FAFCFD',
+                  border: `1px solid ${colors.border}`,
                 }}
               >
-                <MenuBookOutlinedIcon
-                  sx={{ fontSize: 42, color: '#9BB0BE', mb: 1 }}
-                />
-                <Typography sx={{ color: '#173F60', fontWeight: 700 }}>
-                  Start your learning journey
-                </Typography>
-                <Typography
-                  sx={{ color: '#718392', fontSize: '.88rem', mt: .5 }}
-                >
-                  Explore available courses and enroll in a programme.
-                </Typography>
-                <Button
-                  component={RouterLink}
-                  to="/courses"
-                  endIcon={<ArrowForwardIcon />}
+                <Avatar
                   sx={{
-                    mt: 1.5,
-                    color: '#0B5A91',
-                    fontWeight: 700,
-                    textTransform: 'none',
+                    bgcolor: item.bg,
+                    color: item.fg,
+                    width: 42,
+                    height: 42,
+                    mb: 1.3,
                   }}
                 >
-                  Browse courses
-                </Button>
+                  {item.icon}
+                </Avatar>
+                <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.65rem' }}>
+                  {item.value}
+                </Typography>
+                <Typography sx={{ color: colors.text, fontSize: '.84rem' }}>
+                  {item.label}
+                </Typography>
               </Box>
-            )}
-          </Paper>
+            ))}
+          </Box>
+        </Paper>
 
-          {/* Progress ring */}
-          <Paper
-            elevation={0}
+        {/* MY COURSES */}
+        <Paper elevation={0} sx={{ ...cardSx, p: { xs: 2.5, md: 3.5 }, mb: 3 }}>
+          <Box
             sx={{
-              p: { xs: 2.5, md: 3 },
-              border: '1px solid #DCE6ED',
-              borderRadius: 3,
-              bgcolor: '#FFFFFF',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+              mb: 3,
             }}
           >
-            <Typography
-              sx={{ color: '#173F60', fontWeight: 800, fontSize: '1.15rem' }}
-            >
-              Learning overview
-            </Typography>
-            <Typography sx={{ color: '#657887', mt: .4, fontSize: '.88rem' }}>
-              Your current training progress.
-            </Typography>
+            <Box>
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.3rem' }}>
+                My Courses
+              </Typography>
+              <Typography sx={{ color: colors.text, mt: .4, fontSize: '.88rem' }}>
+                Your current learning programmes and completion progress.
+              </Typography>
+            </Box>
 
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                py: 2.5,
-                position: 'relative',
-              }}
+            <Button
+              component={RouterLink}
+              to="/courses"
+              endIcon={<ArrowForwardIcon />}
+              sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
             >
+              View courses
+            </Button>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '260px 1fr' },
+              gap: 4,
+              alignItems: 'center',
+            }}
+          >
+            {/* Overall progress visual */}
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Box
                 sx={{
-                  width: 154,
-                  height: 154,
+                  width: 190,
+                  height: 190,
                   borderRadius: '50%',
-                  background: `conic-gradient(#0B5A91 ${totalProgress * 3.6}deg, #E4EDF2 0deg)`,
+                  background: `conic-gradient(${colors.blue} ${totalProgress * 3.6}deg, #E4EDF2 0deg)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -578,124 +524,35 @@ const Dashboard = () => {
               >
                 <Box
                   sx={{
-                    width: 124,
-                    height: 124,
+                    width: 148,
+                    height: 148,
                     borderRadius: '50%',
-                    bgcolor: '#FFFFFF',
+                    bgcolor: '#fff',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Typography
-                    sx={{
-                      fontSize: '2rem',
-                      fontWeight: 800,
-                      color: '#173F60',
-                      lineHeight: 1,
-                    }}
-                  >
+                  <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '2.25rem' }}>
                     {totalProgress}%
                   </Typography>
-                  <Typography sx={{ color: '#718392', fontSize: '.75rem', mt: .5 }}>
-                    overall
+                  <Typography sx={{ color: colors.text, fontSize: '.78rem' }}>
+                    overall completion
                   </Typography>
                 </Box>
               </Box>
             </Box>
 
-            <Typography
-              sx={{
-                textAlign: 'center',
-                color: '#0B5A91',
-                fontWeight: 700,
-                mb: 2,
-              }}
-            >
-              {progressLabel}
-            </Typography>
-
-            <Divider sx={{ mb: 2 }} />
-
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.3 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography sx={{ color: '#657887', fontSize: '.86rem' }}>
-                  Active courses
-                </Typography>
-                <Typography sx={{ color: '#173F60', fontWeight: 700 }}>
-                  {activeCourses.length}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography sx={{ color: '#657887', fontSize: '.86rem' }}>
-                  Completed courses
-                </Typography>
-                <Typography sx={{ color: '#173F60', fontWeight: 700 }}>
-                  {completedCourses}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography sx={{ color: '#657887', fontSize: '.86rem' }}>
-                  Passed assessments
-                </Typography>
-                <Typography sx={{ color: '#173F60', fontWeight: 700 }}>
-                  {passedAssessments}
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-
-        {/* Course progress + quick links */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '1.7fr 1fr' },
-            gap: 3,
-            mb: 3,
-          }}
-        >
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 2.5, md: 3 },
-              border: '1px solid #DCE6ED',
-              borderRadius: 3,
-              bgcolor: '#FFFFFF',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mb: 2.5,
-              }}
-            >
-              <Box>
-                <Typography
-                  sx={{ color: '#173F60', fontWeight: 800, fontSize: '1.15rem' }}
-                >
-                  Course progress
-                </Typography>
-                <Typography sx={{ color: '#657887', mt: .4, fontSize: '.88rem' }}>
-                  Track progress across your enrolled courses.
-                </Typography>
-              </Box>
-            </Box>
-
-            {enrolledCourses.length ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2.2 }}>
-                {enrolledCourses.slice(0, 5).map((course) => (
-                  <Box key={course.id}>
+            {/* Course bars */}
+            <Box>
+              {enrolledCourses.length ? (
+                enrolledCourses.slice(0, 6).map((course) => (
+                  <Box key={course.id} sx={{ mb: 2.1 }}>
                     <Box
                       sx={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center',
                         gap: 2,
                         mb: .7,
                       }}
@@ -703,8 +560,8 @@ const Dashboard = () => {
                       <Typography
                         sx={{
                           color: '#294C65',
-                          fontWeight: 650,
-                          fontSize: '.9rem',
+                          fontWeight: 700,
+                          fontSize: '.88rem',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -712,15 +569,7 @@ const Dashboard = () => {
                       >
                         {course.title}
                       </Typography>
-
-                      <Typography
-                        sx={{
-                          color: '#0B5A91',
-                          fontWeight: 750,
-                          fontSize: '.82rem',
-                          flexShrink: 0,
-                        }}
-                      >
+                      <Typography sx={{ color: colors.blue, fontWeight: 800, fontSize: '.82rem' }}>
                         {course.progress}%
                       </Typography>
                     </Box>
@@ -729,255 +578,779 @@ const Dashboard = () => {
                       variant="determinate"
                       value={course.progress}
                       sx={{
-                        height: 7,
-                        borderRadius: 10,
-                        bgcolor: '#E5EDF2',
+                        height: 8,
+                        borderRadius: 8,
+                        bgcolor: '#E6EEF3',
                         '& .MuiLinearProgress-bar': {
-                          borderRadius: 10,
-                          bgcolor:
-                            course.progress >= 100 ? '#3A8F62' : '#0B5A91',
+                          borderRadius: 8,
+                          bgcolor: course.progress >= 100 ? colors.green : colors.blue,
                         },
                       }}
                     />
                   </Box>
-                ))}
-              </Box>
-            ) : (
-              <Typography sx={{ color: '#718392', py: 3 }}>
-                Your course progress will appear here after you enroll in a
-                course.
-              </Typography>
-            )}
+                ))
+              ) : (
+                <Box sx={{ py: 4, textAlign: 'center' }}>
+                  <MenuBookOutlinedIcon sx={{ fontSize: 42, color: '#A5B6C1' }} />
+                  <Typography sx={{ color: colors.navy, fontWeight: 700, mt: 1 }}>
+                    No enrolled courses yet
+                  </Typography>
+                  <Button
+                    component={RouterLink}
+                    to="/courses"
+                    endIcon={<ArrowForwardIcon />}
+                    sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
+                  >
+                    Explore courses
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          </Box>
 
-            {enrolledCourses.length > 5 && (
+          {nextCourse && (
+            <Box
+              sx={{
+                mt: 2,
+                p: 2,
+                borderRadius: 2,
+                bgcolor: '#F5F9FC',
+                border: `1px solid ${colors.border}`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 2,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Box>
+                <Typography sx={{ color: colors.text, fontSize: '.75rem', fontWeight: 700 }}>
+                  CONTINUE LEARNING
+                </Typography>
+                <Typography sx={{ color: colors.navy, fontWeight: 750, mt: .2 }}>
+                  {nextCourse.title}
+                </Typography>
+              </Box>
+
               <Button
                 component={RouterLink}
-                to="/courses"
-                endIcon={<ArrowForwardIcon />}
+                to={`/courses/${nextCourse.courseId}`}
+                variant="contained"
+                startIcon={<PlayCircleOutlineOutlinedIcon />}
                 sx={{
-                  mt: 2.5,
-                  color: '#0B5A91',
-                  fontWeight: 700,
+                  bgcolor: colors.blue,
                   textTransform: 'none',
+                  fontWeight: 700,
+                  boxShadow: 'none',
                 }}
               >
-                View all courses
+                Continue
               </Button>
-            )}
-          </Paper>
+            </Box>
+          )}
+        </Paper>
 
-          <Paper
-            elevation={0}
+        {/* ASSESSMENTS */}
+        <Paper elevation={0} sx={{ ...cardSx, p: { xs: 2.5, md: 3.5 }, mb: 3 }}>
+          <Box
             sx={{
-              p: { xs: 2.5, md: 3 },
-              border: '1px solid #DCE6ED',
-              borderRadius: 3,
-              bgcolor: '#FFFFFF',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+              mb: 3,
             }}
           >
-            <Typography
-              sx={{ color: '#173F60', fontWeight: 800, fontSize: '1.15rem' }}
+            <Box>
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.3rem' }}>
+                Assessments
+              </Typography>
+              <Typography sx={{ color: colors.text, mt: .4, fontSize: '.88rem' }}>
+                Monitor assessment activity and performance.
+              </Typography>
+            </Box>
+
+            <Button
+              component={RouterLink}
+              to="/assessments"
+              endIcon={<ArrowForwardIcon />}
+              sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
             >
-              Quick access
-            </Typography>
-            <Typography sx={{ color: '#657887', mt: .4, fontSize: '.88rem' }}>
-              Jump directly to your learning tools.
+              View assessments
+            </Button>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' },
+              gap: 2,
+              mb: 3,
+            }}
+          >
+            {[
+              ['Total attempts', attempts.length, colors.blue],
+              ['Passed', passedAssessments, colors.green],
+              ['Pending', pendingAssessments, colors.orange],
+              ['Average score', `${averageScore}%`, colors.purple],
+            ].map(([label, value, color]) => (
+              <Box
+                key={String(label)}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: '#FAFCFD',
+                  border: `1px solid ${colors.border}`,
+                }}
+              >
+                <Typography sx={{ color: String(color), fontWeight: 800, fontSize: '1.45rem' }}>
+                  {value}
+                </Typography>
+                <Typography sx={{ color: colors.text, fontSize: '.8rem', mt: .3 }}>
+                  {label}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+
+          {/* Assessment visualization */}
+          <Box sx={{ p: 2.5, borderRadius: 2.5, bgcolor: '#F7FAFC' }}>
+            <Typography sx={{ color: colors.navy, fontWeight: 750, mb: 2 }}>
+              Assessment outcome
             </Typography>
 
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.1, mt: 2.2 }}>
-              {[
-                {
-                  label: 'My Courses',
-                  description: 'Continue enrolled courses',
-                  icon: <MenuBookOutlinedIcon />,
-                  to: '/courses',
-                },
-                {
-                  label: 'Assessments',
-                  description: 'View tests and results',
-                  icon: <QuizOutlinedIcon />,
-                  to: '/assessments',
-                },
-                {
-                  label: 'Resources',
-                  description: 'Study material and references',
-                  icon: <LibraryBooksOutlinedIcon />,
-                  to: '/resources',
-                },
-                {
-                  label: 'Certificates',
-                  description: 'View earned certificates',
-                  icon: <WorkspacePremiumOutlinedIcon />,
-                  to: '/certificates',
-                },
-                {
-                  label: 'AI Assistant',
-                  description: 'Ask questions and get guidance',
-                  icon: <AutoAwesomeOutlinedIcon />,
-                  to: '/ai-assistant',
-                },
-              ].map((item) => (
-                <Button
-                  key={item.label}
-                  component={RouterLink}
-                  to={item.to}
-                  sx={{
-                    justifyContent: 'flex-start',
-                    textAlign: 'left',
-                    textTransform: 'none',
-                    p: 1.25,
-                    borderRadius: 2,
-                    color: '#173F60',
-                    '&:hover': {
-                      bgcolor: '#F2F7FA',
-                    },
-                  }}
-                >
-                  <Avatar
-                    sx={{
-                      width: 36,
-                      height: 36,
-                      mr: 1.4,
-                      bgcolor: '#EAF3F8',
-                      color: '#0B5A91',
-                    }}
-                  >
-                    {item.icon}
-                  </Avatar>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 700, fontSize: '.86rem' }}>
-                      {item.label}
+            {[
+              ['Passed', passedAssessments, colors.green],
+              ['Pending', pendingAssessments, colors.orange],
+              ['Failed', failedAssessments, '#C65353'],
+            ].map(([label, value, color]) => {
+              const total = Math.max(attempts.length, 1);
+              const width = (Number(value) / total) * 100;
+
+              return (
+                <Box key={String(label)} sx={{ mb: 1.8 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: .5 }}>
+                    <Typography sx={{ color: '#486274', fontSize: '.82rem' }}>
+                      {label}
                     </Typography>
-                    <Typography
-                      sx={{
-                        color: '#7A8B98',
-                        fontSize: '.74rem',
-                        mt: .15,
-                      }}
-                    >
-                      {item.description}
+                    <Typography sx={{ color: colors.navy, fontWeight: 700, fontSize: '.8rem' }}>
+                      {value}
                     </Typography>
                   </Box>
-                  <ArrowForwardIcon
-                    sx={{ ml: 'auto', fontSize: 18, color: '#9AAAB5' }}
-                  />
-                </Button>
-              ))}
-            </Box>
-          </Paper>
-        </Box>
+                  <Box sx={{ height: 10, borderRadius: 8, bgcolor: '#E4EBEF', overflow: 'hidden' }}>
+                    <Box
+                      sx={{
+                        width: `${width}%`,
+                        height: '100%',
+                        bgcolor: color,
+                        borderRadius: 8,
+                        transition: 'width .4s ease',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
 
-        {/* Bottom insights */}
-        <Box
+          <Box
+            sx={{
+              mt: 2.5,
+              p: 2,
+              borderRadius: 2,
+              bgcolor: '#EEF6FB',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+            }}
+          >
+            <PsychologyOutlinedIcon sx={{ color: colors.blue }} />
+            <Typography sx={{ color: '#365A70', fontSize: '.84rem' }}>
+              <b>AI performance support:</b> your assessment activity is used to
+              generate personalized learning guidance below.
+            </Typography>
+          </Box>
+        </Paper>
+
+        {/* RESOURCES */}
+        <Paper elevation={0} sx={{ ...cardSx, p: { xs: 2.5, md: 3.5 }, mb: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+              mb: 3,
+            }}
+          >
+            <Box>
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.3rem' }}>
+                Resources
+              </Typography>
+              <Typography sx={{ color: colors.text, mt: .4, fontSize: '.88rem' }}>
+                Learning material connected with your programmes.
+              </Typography>
+            </Box>
+
+            <Button
+              component={RouterLink}
+              to="/resources"
+              endIcon={<ArrowForwardIcon />}
+              sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
+            >
+              View resources
+            </Button>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+              gap: 3,
+            }}
+          >
+            <Box
+              sx={{
+                minHeight: 210,
+                p: 3,
+                borderRadius: 2.5,
+                bgcolor: '#F7FAFC',
+                border: `1px solid ${colors.border}`,
+              }}
+            >
+              <Typography sx={{ color: colors.navy, fontWeight: 750, mb: 2 }}>
+                Resource library
+              </Typography>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-around',
+                  alignItems: 'center',
+                  height: 130,
+                }}
+              >
+                {[
+                  ['Files', resourceByType.file, colors.blue],
+                  ['Links', resourceByType.link, colors.green],
+                ].map(([label, value, color]) => {
+                  const total = Math.max(resourceByType.total, 1);
+                  const percent = Math.round((Number(value) / total) * 100);
+
+                  return (
+                    <Box key={String(label)} sx={{ textAlign: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 110,
+                          height: 110,
+                          borderRadius: '50%',
+                          background: `conic-gradient(${color} ${percent * 3.6}deg, #E5EDF2 0deg)`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 78,
+                            height: 78,
+                            borderRadius: '50%',
+                            bgcolor: '#F7FAFC',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexDirection: 'column',
+                          }}
+                        >
+                          <Typography sx={{ color: colors.navy, fontWeight: 800 }}>
+                            {value}
+                          </Typography>
+                          <Typography sx={{ color: colors.text, fontSize: '.68rem' }}>
+                            {percent}%
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Typography sx={{ color: colors.text, fontSize: '.78rem', mt: .7 }}>
+                        {label}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Box>
+
+            <Box
+              sx={{
+                minHeight: 210,
+                p: 3,
+                borderRadius: 2.5,
+                bgcolor: '#F7FAFC',
+                border: `1px solid ${colors.border}`,
+              }}
+            >
+              <Typography sx={{ color: colors.navy, fontWeight: 750, mb: 2 }}>
+                Learning material available
+              </Typography>
+
+              {resources.length ? (
+                resources.slice(0, 5).map((resource) => (
+                  <Box
+                    key={resource.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.3,
+                      py: 1.1,
+                      borderBottom: `1px solid ${colors.border}`,
+                    }}
+                  >
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: colors.lightBlue,
+                        color: colors.blue,
+                      }}
+                    >
+                      <LibraryBooksOutlinedIcon sx={{ fontSize: 18 }} />
+                    </Avatar>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        sx={{
+                          color: colors.navy,
+                          fontWeight: 650,
+                          fontSize: '.82rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {resource.title}
+                      </Typography>
+                      <Typography sx={{ color: colors.text, fontSize: '.7rem' }}>
+                        {resource.type || 'Resource'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <LibraryBooksOutlinedIcon sx={{ color: '#A5B6C1', fontSize: 38 }} />
+                  <Typography sx={{ color: colors.text, fontSize: '.84rem', mt: 1 }}>
+                    Resources will appear here as they become available.
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* CERTIFICATES */}
+        <Paper elevation={0} sx={{ ...cardSx, p: { xs: 2.5, md: 3.5 }, mb: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Box>
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.3rem' }}>
+                Certificates
+              </Typography>
+              <Typography sx={{ color: colors.text, mt: .4, fontSize: '.88rem' }}>
+                Your professional learning credentials.
+              </Typography>
+            </Box>
+
+            <Button
+              component={RouterLink}
+              to="/certificates"
+              endIcon={<ArrowForwardIcon />}
+              sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
+            >
+              View certificates
+            </Button>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+              gap: 2,
+              mt: 3,
+            }}
+          >
+            <Box sx={{ p: 2.5, borderRadius: 2.5, bgcolor: colors.lightPurple }}>
+              <WorkspacePremiumOutlinedIcon sx={{ color: colors.purple, fontSize: 34 }} />
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.6rem', mt: 1 }}>
+                {issuedCertificates}
+              </Typography>
+              <Typography sx={{ color: colors.text, fontSize: '.82rem' }}>
+                Certificates issued
+              </Typography>
+            </Box>
+
+            <Box sx={{ p: 2.5, borderRadius: 2.5, bgcolor: '#F7FAFC' }}>
+              <CheckCircleOutlineOutlinedIcon sx={{ color: colors.green, fontSize: 34 }} />
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.6rem', mt: 1 }}>
+                {completedCourses}
+              </Typography>
+              <Typography sx={{ color: colors.text, fontSize: '.82rem' }}>
+                Completed courses
+              </Typography>
+            </Box>
+
+            <Box sx={{ p: 2.5, borderRadius: 2.5, bgcolor: colors.lightBlue }}>
+              <TrendingUpOutlinedIcon sx={{ color: colors.blue, fontSize: 34 }} />
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.6rem', mt: 1 }}>
+                {totalProgress}%
+              </Typography>
+              <Typography sx={{ color: colors.text, fontSize: '.82rem' }}>
+                Programme completion
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* NOTIFICATIONS */}
+        <Paper elevation={0} sx={{ ...cardSx, p: { xs: 2.5, md: 3.5 }, mb: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Box>
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.3rem' }}>
+                Notifications
+              </Typography>
+              <Typography sx={{ color: colors.text, mt: .4, fontSize: '.88rem' }}>
+                Important updates from your learning portal.
+              </Typography>
+            </Box>
+
+            <Button
+              component={RouterLink}
+              to="/announcements"
+              endIcon={<ArrowForwardIcon />}
+              sx={{ color: colors.blue, textTransform: 'none', fontWeight: 700 }}
+            >
+              View all
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 2.5 }} />
+
+          {announcements.length ? (
+            announcements.slice(0, 4).map((item) => (
+              <Box
+                key={item.id}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 1.5,
+                  py: 1.4,
+                  borderBottom: `1px solid ${colors.border}`,
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    bgcolor: colors.lightBlue,
+                    color: colors.blue,
+                  }}
+                >
+                  <NotificationsNoneOutlinedIcon />
+                </Avatar>
+
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ color: colors.navy, fontWeight: 700, fontSize: '.86rem' }}>
+                    {item.title || 'Portal update'}
+                  </Typography>
+                  <Typography sx={{ color: colors.text, fontSize: '.78rem', mt: .25 }}>
+                    {item.message || item.content || 'New information is available in the portal.'}
+                  </Typography>
+                </Box>
+              </Box>
+            ))
+          ) : (
+            <Box sx={{ py: 3, textAlign: 'center' }}>
+              <NotificationsNoneOutlinedIcon sx={{ color: '#A5B6C1', fontSize: 38 }} />
+              <Typography sx={{ color: colors.text, fontSize: '.84rem', mt: 1 }}>
+                No important notifications right now.
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+
+        {/* AI LEARNING INSIGHTS */}
+        <Paper
+          elevation={0}
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-            gap: 3,
+            ...cardSx,
+            p: { xs: 2.5, md: 3.5 },
+            mb: 3,
+            background: 'linear-gradient(135deg, #F3F8FC 0%, #FFFFFF 70%)',
           }}
         >
-          <Paper
-            elevation={0}
+          <Box
             sx={{
-              p: 2.5,
-              border: '1px solid #DCE6ED',
-              borderRadius: 3,
-              bgcolor: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 2,
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar
-                sx={{
-                  bgcolor: '#E8F3FA',
-                  color: '#0B5A91',
-                  width: 42,
-                  height: 42,
-                }}
-              >
-                <AccessTimeOutlinedIcon />
-              </Avatar>
-              <Box>
-                <Typography sx={{ color: '#173F60', fontWeight: 750 }}>
-                  Keep your momentum
-                </Typography>
-                <Typography sx={{ color: '#718392', fontSize: '.8rem', mt: .25 }}>
-                  {totalProgress > 0
-                    ? `You are ${totalProgress}% through your current learning journey.`
-                    : 'Enroll in a course to start tracking your progress.'}
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
+            <Avatar
+              sx={{
+                width: 50,
+                height: 50,
+                bgcolor: colors.blue,
+                color: '#fff',
+              }}
+            >
+              <AutoAwesomeOutlinedIcon />
+            </Avatar>
 
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2.5,
-              border: '1px solid #DCE6ED',
-              borderRadius: 3,
-              bgcolor: '#FFFFFF',
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar
-                sx={{
-                  bgcolor: '#EAF6F0',
-                  color: '#2E7D57',
-                  width: 42,
-                  height: 42,
-                }}
-              >
-                <CheckCircleOutlineOutlinedIcon />
-              </Avatar>
-              <Box>
-                <Typography sx={{ color: '#173F60', fontWeight: 750 }}>
-                  Assessment performance
-                </Typography>
-                <Typography sx={{ color: '#718392', fontSize: '.8rem', mt: .25 }}>
-                  {attempts.length
-                    ? `${passedAssessments} successful assessment${passedAssessments === 1 ? '' : 's'} recorded.`
-                    : 'Your assessment activity will appear here.'}
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.3rem' }}>
+                AI Learning Insights
+              </Typography>
 
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2.5,
-              border: '1px solid #DCE6ED',
-              borderRadius: 3,
-              bgcolor: '#FFFFFF',
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar
+              <Typography sx={{ color: colors.text, mt: .5, fontSize: '.86rem' }}>
+                Personalized guidance generated from your current learning activity.
+              </Typography>
+
+              <Box
                 sx={{
-                  bgcolor: '#F2ECFA',
-                  color: '#7050A5',
-                  width: 42,
-                  height: 42,
+                  mt: 2,
+                  p: 2,
+                  bgcolor: '#fff',
+                  borderRadius: 2,
+                  border: `1px solid ${colors.border}`,
                 }}
               >
-                {issuedCertificates > 0 ? (
-                  <WorkspacePremiumOutlinedIcon />
-                ) : (
-                  <RadioButtonUncheckedOutlinedIcon />
-                )}
-              </Avatar>
-              <Box>
-                <Typography sx={{ color: '#173F60', fontWeight: 750 }}>
-                  Certification
+                <Typography sx={{ color: '#365A70', lineHeight: 1.7, fontSize: '.88rem' }}>
+                  {aiInsight ||
+                    'Keep progressing through your active courses and complete pending assessments to build a stronger learning profile.'}
                 </Typography>
-                <Typography sx={{ color: '#718392', fontSize: '.8rem', mt: .25 }}>
-                  {issuedCertificates
-                    ? `${issuedCertificates} certificate${issuedCertificates === 1 ? '' : 's'} available.`
-                    : 'Complete eligible learning programmes to earn certificates.'}
+              </Box>
+
+              <Button
+                component={RouterLink}
+                to="/ai-assistant"
+                endIcon={<ArrowForwardIcon />}
+                sx={{
+                  mt: 1.5,
+                  color: colors.blue,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                }}
+              >
+                Explore with AI Assistant
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* LEARNING STREAK + ACTIVITY */}
+        <Paper elevation={0} sx={{ ...cardSx, p: { xs: 2.5, md: 3.5 }, mb: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: { xs: 'flex-start', md: 'center' },
+              gap: 2,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Box>
+              <Typography sx={{ color: colors.navy, fontWeight: 800, fontSize: '1.3rem' }}>
+                Learning Activity
+              </Typography>
+              <Typography sx={{ color: colors.text, mt: .4, fontSize: '.88rem' }}>
+                Your learning consistency over the last year.
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+              <LocalFireDepartmentOutlinedIcon sx={{ color: '#E07B22' }} />
+              <Box>
+                <Typography sx={{ color: colors.navy, fontWeight: 800 }}>
+                  {currentStreak} day{currentStreak === 1 ? '' : 's'}
+                </Typography>
+                <Typography sx={{ color: colors.text, fontSize: '.7rem' }}>
+                  current streak
                 </Typography>
               </Box>
             </Box>
-          </Paper>
-        </Box>
+          </Box>
+
+          <Box
+            sx={{
+              mt: 3,
+              p: { xs: 1.5, md: 2.5 },
+              bgcolor: '#FAFCFD',
+              borderRadius: 2.5,
+              border: `1px solid ${colors.border}`,
+              overflowX: 'auto',
+            }}
+          >
+            <Box
+              sx={{
+                minWidth: 850,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(53, 1fr)',
+                gridAutoRows: '12px',
+                gridAutoFlow: 'column',
+                gap: '4px',
+              }}
+            >
+              {heatmapDays.map((day) => (
+                <Box
+                  key={day.date}
+                  title={`${day.date}: ${day.count} learning activity`}
+                  sx={{
+                    width: 11,
+                    height: 11,
+                    borderRadius: '2px',
+                    bgcolor: activityLevel(day.count),
+                  }}
+                />
+              ))}
+            </Box>
+
+            <Box
+              sx={{
+                mt: 2,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Typography sx={{ color: colors.text, fontSize: '.72rem' }}>
+                {activeDays} active learning days
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: .7 }}>
+                <Typography sx={{ color: colors.text, fontSize: '.7rem' }}>
+                  Less
+                </Typography>
+
+                {[0, 1, 2, 3, 4].map((level) => (
+                  <Box
+                    key={level}
+                    sx={{
+                      width: 11,
+                      height: 11,
+                      borderRadius: '2px',
+                      bgcolor: activityLevel(level),
+                    }}
+                  />
+                ))}
+
+                <Typography sx={{ color: colors.text, fontSize: '.7rem' }}>
+                  More
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          <Box
+            sx={{
+              mt: 2.5,
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+              gap: 2,
+            }}
+          >
+            <Box sx={{ p: 2, bgcolor: colors.lightOrange, borderRadius: 2 }}>
+              <AccessTimeOutlinedIcon sx={{ color: colors.orange }} />
+              <Typography sx={{ color: colors.navy, fontWeight: 800, mt: .6 }}>
+                {currentStreak}
+              </Typography>
+              <Typography sx={{ color: colors.text, fontSize: '.75rem' }}>
+                Current streak
+              </Typography>
+            </Box>
+
+            <Box sx={{ p: 2, bgcolor: colors.lightGreen, borderRadius: 2 }}>
+              <TrendingUpOutlinedIcon sx={{ color: colors.green }} />
+              <Typography sx={{ color: colors.navy, fontWeight: 800, mt: .6 }}>
+                {activeDays}
+              </Typography>
+              <Typography sx={{ color: colors.text, fontSize: '.75rem' }}>
+                Active days
+              </Typography>
+            </Box>
+
+            <Box sx={{ p: 2, bgcolor: colors.lightBlue, borderRadius: 2 }}>
+              <MenuBookOutlinedIcon sx={{ color: colors.blue }} />
+              <Typography sx={{ color: colors.navy, fontWeight: 800, mt: .6 }}>
+                {enrolledCourses.length}
+              </Typography>
+              <Typography sx={{ color: colors.text, fontSize: '.75rem' }}>
+                Learning programmes
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* FOOTER CTA */}
+        <Paper
+          elevation={0}
+          sx={{
+            ...cardSx,
+            p: { xs: 2.5, md: 3 },
+            mb: 2,
+            bgcolor: '#173F60',
+            color: '#fff',
+            border: 0,
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontWeight: 800, fontSize: '1.15rem' }}>
+                Build your next capability.
+              </Typography>
+              <Typography sx={{ color: '#C8D9E5', fontSize: '.84rem', mt: .5 }}>
+                Use your learning data and AI guidance to decide what to work on next.
+              </Typography>
+            </Box>
+
+            <Button
+              component={RouterLink}
+              to="/ai-assistant"
+              variant="contained"
+              startIcon={<PsychologyOutlinedIcon />}
+              sx={{
+                bgcolor: '#fff',
+                color: colors.blue,
+                textTransform: 'none',
+                fontWeight: 750,
+                '&:hover': { bgcolor: '#EEF5F9' },
+              }}
+            >
+              Get AI guidance
+            </Button>
+          </Box>
+        </Paper>
       </Container>
     </Box>
   );
