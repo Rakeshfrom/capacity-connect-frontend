@@ -203,7 +203,7 @@ const Signup = () => {
                   sessionStorage.removeItem('capacity-connect.access-token');
                   await keycloak.login({
                     idpHint: 'google',
-                    redirectUri: `${window.location.origin}/login`,
+                    redirectUri: `${window.location.origin}/auth/callback`,
                   });
                 } catch (err) {
                   console.error('Google signup failed:', err);

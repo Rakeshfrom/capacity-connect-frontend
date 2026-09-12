@@ -14,6 +14,7 @@ import Announcements from '../pages/public/Announcements/Announcements';
 import Login from '../pages/auth/Login/Login';
 import Signup from '../pages/auth/Signup/Signup';
 import ForgotPassword from '../pages/auth/ForgotPassword/ForgotPassword';
+import GoogleCallback from '../pages/auth/GoogleCallback';
 
 import Assessments from '../pages/trainee/Assessments/Assessments';
 import AssessmentAttempt from '../pages/trainee/Assessments/Attempt';
@@ -70,6 +71,7 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/callback" element={<GoogleCallback />} />
       </Route>
 
       <Route
