@@ -10,15 +10,17 @@ export async function apiFetch(
         try {
             await keycloak.updateToken(30);
         } catch {
-            await keycloak.login();
             throw new Error('Authentication required');
         }
     }
 
     const headers = new Headers(options.headers);
+    const accessToken =
+        sessionStorage.getItem('capacity-connect.access-token') ||
+        keycloak.token;
 
-    if (keycloak.token) {
-        headers.set('Authorization', `Bearer ${keycloak.token}`);
+    if (accessToken) {
+        headers.set('Authorization', `Bearer ${accessToken}`);
     }
 
     if (
@@ -81,15 +83,17 @@ export async function apiFetchBlob(path: string) {
     try {
       await keycloak.updateToken(30);
     } catch {
-      await keycloak.login();
       throw new Error('Authentication required');
     }
   }
 
   const headers = new Headers();
+  const accessToken =
+    sessionStorage.getItem('capacity-connect.access-token') ||
+    keycloak.token;
 
-  if (keycloak.token) {
-    headers.set('Authorization', `Bearer ${keycloak.token}`);
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -97,7 +101,6 @@ export async function apiFetchBlob(path: string) {
   });
 
   if (response.status === 401) {
-    await keycloak.login();
     throw new Error('Authentication required');
   }
 
@@ -391,7 +394,6 @@ export async function downloadTrainerResource(id: number) {
   );
 
   if (response.status === 401) {
-    await keycloak.login();
     throw new Error('Authentication required');
   }
 
