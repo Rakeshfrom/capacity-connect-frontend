@@ -26,7 +26,7 @@ export default function AiChatbot() {
     setLoading(true);
 
     try {
-      const result = await chatWithAI(message) as {
+      const result = await chatWithAI(message, sessionStorage.getItem('aiResourceText') || '') as {
         answer: string;
         quickQueries: string[];
       };
