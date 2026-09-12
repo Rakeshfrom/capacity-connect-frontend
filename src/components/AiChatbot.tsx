@@ -11,7 +11,11 @@ type Message = {
   attachmentName?: string;
 };
 
-export default function AiChatbot() {
+type AiChatbotProps = {
+  resourceId?: number;
+};
+
+export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [resource, setResource] = useState<File | null>(null);
@@ -20,7 +24,10 @@ export default function AiChatbot() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const resourceId = new URLSearchParams(window.location.search).get('resourceId');
+    const resourceId =
+      propResourceId?.toString() ||
+      new URLSearchParams(window.location.search).get('resourceId');
+
     if (!resourceId) return;
 
     const loadResource = async () => {
@@ -44,7 +51,7 @@ export default function AiChatbot() {
     };
 
     loadResource();
-  }, []);
+  }, [propResourceId]);
 
 
   const sendMessage = async (text = input) => {

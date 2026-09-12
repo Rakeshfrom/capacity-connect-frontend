@@ -25,6 +25,7 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiFetchBlob } from '../../../services/api';
+import AiChatbot from '../../../components/AiChatbot';
 
 type Resource = {
   id: number;
@@ -68,6 +69,7 @@ const TrainerLibrary = () => {
   const [viewerTitle, setViewerTitle] = useState('');
   const [viewerUrl, setViewerUrl] = useState('');
   const [viewerType, setViewerType] = useState<'file' | 'link'>('file');
+  const [aiResourceId, setAiResourceId] = useState<number | null>(null);
 
   const loadResources = async () => {
     try {
@@ -497,6 +499,46 @@ const TrainerLibrary = () => {
                 </Stack>
               </Box>
             ))}
+          </Box>
+        )}
+
+        {aiResourceId !== null && (
+          <Box
+            id="resource-ai-chat"
+            sx={{
+              mt: 4,
+              bgcolor: '#FFFFFF',
+              border: '1px solid #DCE8F0',
+              borderRadius: 2,
+              overflow: 'hidden',
+            }}
+          >
+            <Box
+              sx={{
+                px: 2.5,
+                py: 1.5,
+                borderBottom: '1px solid #DCE8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography sx={{ color: '#173F60', fontWeight: 700 }}>
+                Ask AI about this resource
+              </Typography>
+
+              <Button
+                size="small"
+                onClick={() => setAiResourceId(null)}
+                sx={{ textTransform: 'none' }}
+              >
+                Close
+              </Button>
+            </Box>
+
+            <Box sx={{ height: 520 }}>
+              <AiChatbot resourceId={aiResourceId} />
+            </Box>
           </Box>
         )}
       </Container>
