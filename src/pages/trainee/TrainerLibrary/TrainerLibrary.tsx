@@ -22,6 +22,7 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiFetchBlob } from '../../../services/api';
 
@@ -63,6 +64,10 @@ const TrainerLibrary = () => {
   const [link, setLink] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerTitle, setViewerTitle] = useState('');
+  const [viewerUrl, setViewerUrl] = useState('');
+  const [viewerType, setViewerType] = useState<'file' | 'link'>('file');
 
   const loadResources = async () => {
     try {
@@ -167,17 +172,33 @@ const TrainerLibrary = () => {
   const openResource = async (resource: Resource) => {
     try {
       if (resource.type === 'LINK' && resource.url) {
-        window.open(resource.url, '_blank', 'noopener,noreferrer');
+        setViewerTitle(resource.title);
+        setViewerUrl(resource.url);
+        setViewerType('link');
+        setViewerOpen(true);
         return;
       }
 
       const blob = await apiFetchBlob(`/trainee/resources/${resource.id}/file`);
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
+
+      setViewerTitle(resource.title);
+      setViewerUrl(url);
+      setViewerType('file');
+      setViewerOpen(true);
     } catch (error) {
       console.error(error);
       alert('Could not open resource.');
     }
+  };
+
+  const closeViewer = () => {
+    if (viewerType === 'file' && viewerUrl) {
+      URL.revokeObjectURL(viewerUrl);
+    }
+    setViewerOpen(false);
+    setViewerUrl('');
+    setViewerTitle('');
   };
 
   const deleteResource = async (id: number) => {
@@ -479,6 +500,54 @@ const TrainerLibrary = () => {
           </Box>
         )}
       </Container>
+
+      <Dialog
+        open={viewerOpen}
+        onClose={closeViewer}
+        fullWidth
+        maxWidth="xl"
+        slotProps={{
+          paper: {
+            sx: {
+              height: '88vh',
+              maxHeight: '88vh',
+            },
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            color: '#173F60',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          {viewerTitle}
+          <Button
+            onClick={closeViewer}
+            startIcon={<CloseOutlinedIcon />}
+            sx={{ textTransform: 'none' }}
+          >
+            Close
+          </Button>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 0, bgcolor: '#F5F8FA' }}>
+          <Box
+            component="iframe"
+            src={viewerUrl}
+            title={viewerTitle}
+            sx={{
+              width: '100%',
+              height: '100%',
+              border: 0,
+              bgcolor: '#fff',
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={addOpen}
