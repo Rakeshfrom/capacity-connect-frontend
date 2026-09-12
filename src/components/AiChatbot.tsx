@@ -8,6 +8,7 @@ type Message = {
   role: 'user' | 'assistant';
   text: string;
   quickQueries?: string[];
+  attachmentName?: string;
 };
 
 export default function AiChatbot() {
@@ -21,8 +22,18 @@ export default function AiChatbot() {
     const message = text.trim();
     if (!message || loading) return;
 
-    setMessages(prev => [...prev, { role: 'user', text: message }]);
+    const attachedFile = resource;
+
+    setMessages(prev => [
+      ...prev,
+      {
+        role: 'user',
+        text: message,
+        attachmentName: attachedFile?.name,
+      },
+    ]);
     setInput('');
+    setResource(null);
     setLoading(true);
 
     try {
@@ -69,6 +80,20 @@ export default function AiChatbot() {
               {msg.role === 'user' ? 'You' : 'Capacity AI'}
             </Typography>
 
+            {msg.attachmentName && (
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 0.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  fontWeight: 600,
+                }}
+              >
+                📎 {msg.attachmentName}
+              </Typography>
+            )}
+
             <Typography sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
               {msg.text}
             </Typography>
@@ -104,19 +129,6 @@ export default function AiChatbot() {
             setResource(file);
           }}
         />
-
-        {resource && (
-          <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" sx={{ fontWeight: 600 }}>
-              📎 {resource.name}
-            </Typography>
-            <Chip
-              label="Remove"
-              size="small"
-              onDelete={() => setResource(null)}
-            />
-          </Box>
-        )}
 
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <IconButton
