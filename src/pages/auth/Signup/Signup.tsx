@@ -13,15 +13,14 @@ import {
 import GitHubIcon from '@mui/icons-material/GitHub';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { registerAccount } from '../../../services/api';
+import { Link as RouterLink } from 'react-router-dom';
+import { getCurrentUser, registerAccount } from '../../../services/api';
+import { loginWithCredentials } from '../../../services/auth';
 
 const passwordRule =
   /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 const Signup = () => {
-  const navigate = useNavigate();
-
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,17 +54,30 @@ const Signup = () => {
     try {
       setLoading(true);
 
+      const normalizedEmail = email.trim().toLowerCase();
+
       await registerAccount(
         fullName.trim(),
-        email.trim().toLowerCase(),
+        normalizedEmail,
         password
       );
 
-      setSuccess('Account created successfully. Redirecting to sign in...');
+      await loginWithCredentials(normalizedEmail, password);
+
+      const user = await getCurrentUser();
+
+      setSuccess('Account created successfully. Redirecting to your dashboard...');
+
+      const dashboard =
+        user.role === 'ADMIN'
+          ? '/admin/dashboard'
+          : user.role === 'TRAINER'
+            ? '/trainer/dashboard'
+            : '/trainee/dashboard';
 
       setTimeout(() => {
-        navigate('/login', { replace: true });
-      }, 1000);
+        window.location.replace(dashboard);
+      }, 500);
     } catch (err) {
       setError(
         err instanceof Error
