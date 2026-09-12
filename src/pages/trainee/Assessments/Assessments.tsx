@@ -75,33 +75,38 @@ const Assessments = () => {
           .filter((enrollment) => enrollment.status !== 'DROPPED')
           .map((enrollment) => enrollment.courseId);
 
-        const assessmentLists = await Promise.all(
-          enrolledCourseIds.map((courseId) =>
-            getMyCourseAssessments(courseId)
-          )
-        );
-
-        const enrolledAssessments = assessmentLists
-          .flat()
-          .filter(
-            (assessment: Assessment) =>
-              assessment.status === 'PUBLISHED'
-          )
-          .filter(
-            (assessment: Assessment, index: number, array: Assessment[]) =>
-              array.findIndex((item) => item.id === assessment.id) === index
-          );
-
         const enrolledCourses = (courseData as Course[]).filter((course) =>
           enrolledCourseIds.includes(course.id)
         );
 
-        setAssessments(enrolledAssessments);
         setCourses(enrolledCourses);
         setAttempts(attemptData);
+        setLoading(false);
+
+        Promise.all(
+          enrolledCourseIds.map((courseId) =>
+            getMyCourseAssessments(courseId)
+          )
+        )
+          .then((assessmentLists) => {
+            const enrolledAssessments = assessmentLists
+              .flat()
+              .filter(
+                (assessment: Assessment) =>
+                  assessment.status === 'PUBLISHED'
+              )
+              .filter(
+                (assessment: Assessment, index: number, array: Assessment[]) =>
+                  array.findIndex((item) => item.id === assessment.id) === index
+              );
+
+            setAssessments(enrolledAssessments);
+          })
+          .catch((error) => {
+            console.error('Failed to load trainee assessments:', error);
+          });
       } catch (error) {
         console.error('Failed to load assessments:', error);
-      } finally {
         setLoading(false);
       }
     };

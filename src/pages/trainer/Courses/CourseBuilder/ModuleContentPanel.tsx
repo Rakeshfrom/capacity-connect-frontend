@@ -24,10 +24,10 @@ import {
   deleteTrainerResource,
   getAssessmentsByCourse,
   getCourseResources,
-  getCurrentUser,
   uploadCourseResource,
 } from '../../../../services/api';
 import AssessmentBuilder from './AssessmentBuilder';
+import { useAuth } from '../../../../context/AuthContext';
 
 type Resource = {
   id: number;
@@ -64,6 +64,7 @@ const ModuleContentPanel: React.FC<Props> = ({ courseId, moduleId }) => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const { user } = useAuth();
 
   const loadContent = async () => {
     try {
@@ -120,7 +121,10 @@ const ModuleContentPanel: React.FC<Props> = ({ courseId, moduleId }) => {
       setLoading(true);
       setMessage('');
 
-      const user = await getCurrentUser();
+      if (!user) {
+        setMessage('Trainer session is unavailable.');
+        return;
+      }
 
       await uploadCourseResource({
         trainerId: Number(user.id),

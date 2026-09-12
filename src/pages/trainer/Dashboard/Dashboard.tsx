@@ -72,18 +72,23 @@ const Dashboard = () => {
         setAnalytics(analyticsData);
         setCourses(analyticsCourses);
 
-        const assessmentResults = await Promise.all(
+        setLoading(false);
+
+        Promise.all(
           courseData.map((course: { id: number }) =>
             getAssessmentsByCourse(course.id)
           )
-        );
-
-        setAssessments(
-          assessmentResults.flat().slice(0, 5)
-        );
+        )
+          .then((assessmentResults) => {
+            setAssessments(
+              assessmentResults.flat().slice(0, 5)
+            );
+          })
+          .catch((error) => {
+            console.error('Failed to load trainer assessments:', error);
+          });
       } catch (error) {
         console.error('Failed to load trainer dashboard:', error);
-      } finally {
         setLoading(false);
       }
     };

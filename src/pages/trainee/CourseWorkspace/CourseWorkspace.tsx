@@ -107,28 +107,34 @@ const CourseWorkspace = () => {
           return;
         }
 
-        const [resourceData, moduleData, assessmentData] =
-          await Promise.all([
-            getMyCourseResources(id),
-            getCourseModules(id),
-            getMyCourseAssessments(id),
-          ]);
-
         setCourse(courseData);
         setEnrollment(currentEnrollment);
-        setResources(Array.isArray(resourceData) ? resourceData : []);
-        setModules(
-          Array.isArray(moduleData)
-            ? moduleData.filter((item: CourseModule) => item.active)
-            : []
-        );
-        setAssessments(Array.isArray(assessmentData) ? assessmentData : []);
+        setLoading(false);
+
+        Promise.all([
+          getMyCourseResources(id),
+          getCourseModules(id),
+          getMyCourseAssessments(id),
+        ])
+          .then(([resourceData, moduleData, assessmentData]) => {
+            setResources(Array.isArray(resourceData) ? resourceData : []);
+            setModules(
+              Array.isArray(moduleData)
+                ? moduleData.filter((item: CourseModule) => item.active)
+                : []
+            );
+            setAssessments(
+              Array.isArray(assessmentData) ? assessmentData : []
+            );
+          })
+          .catch((err) => {
+            console.error('Failed to load course content:', err);
+          });
       } catch (err) {
         console.error('Failed to load course workspace:', err);
         setError(
           'Unable to load this course workspace. Please try again.'
         );
-      } finally {
         setLoading(false);
       }
     };
