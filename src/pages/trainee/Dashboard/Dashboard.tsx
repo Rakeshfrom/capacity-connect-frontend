@@ -31,7 +31,7 @@ import {
   getAttemptsByTrainee,
   getMyCertificates,
   getPublishedAnnouncements,
-  getMyStudyResource,
+  getMyStudyResources,
   chatWithAI,
 } from '../../../services/api';
 
@@ -135,17 +135,8 @@ const Dashboard = () => {
         setCertificates(certificateData || []);
         setAnnouncements(announcementData || []);
 
-        const courseIds = (enrollmentData || []).slice(0, 5).map(
-          (e: Enrollment) => e.courseId
-        );
-
-        const resourceLists = await Promise.all(
-          courseIds.map((id: number) =>
-            getMyStudyResource(id).catch(() => null)
-          )
-        );
-
-        const extracted = resourceLists.filter(Boolean).flat();
+        const resourceLists = await getMyStudyResources().catch(() => []);
+        const extracted = Array.isArray(resourceLists) ? resourceLists : [];
         if (extracted.length) {
           setResources(extracted as Resource[]);
         }

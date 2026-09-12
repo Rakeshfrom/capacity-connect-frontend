@@ -804,3 +804,7 @@ export async function chatWithAIResourceLink(message: string, url: string) {
 
   return response.json();
 }
+
+export async function getMyStudyResources() {
+  return apiFetch("/trainee/resources");
+}
