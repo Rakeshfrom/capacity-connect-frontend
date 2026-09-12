@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Box, Paper, TextField, IconButton, Typography, Chip, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import { chatWithAI, extractAIResource } from '../services/api';
+import { chatWithAI } from '../services/api';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -14,7 +14,6 @@ export default function AiChatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [resource, setResource] = useState<File | null>(null);
-  const [resourceText, setResourceText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +26,7 @@ export default function AiChatbot() {
     setLoading(true);
 
     try {
-      const result = await chatWithAI(message, resourceText) as {
+      const result = await chatWithAI(message, resource) as {
         answer: string;
         quickQueries: string[];
       };
@@ -102,14 +101,7 @@ export default function AiChatbot() {
           onChange={async e => {
             const file = e.target.files?.[0];
             if (!file) return;
-            try {
-              const text = await extractAIResource(file);
-              setResource(file);
-              setResourceText(text);
-            } catch {
-              setResource(null);
-    setResourceText('');
-            }
+            setResource(file);
           }}
         />
 
@@ -121,10 +113,7 @@ export default function AiChatbot() {
             <Chip
               label="Remove"
               size="small"
-              onDelete={() => {
-                setResource(null);
-                setResourceText('');
-              }}
+              onDelete={() => setResource(null)}
             />
           </Box>
         )}

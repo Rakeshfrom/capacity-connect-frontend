@@ -692,12 +692,36 @@ export async function searchPublicContent(query: string) {
   };
 }
 
-export async function chatWithAI(message: string, resourceText = '') {
-  const query = resourceText
-    ? `?resourceText=${encodeURIComponent(resourceText)}`
-    : '';
+export async function chatWithAI(message: string, file: File | null = null) {
+  if (file) {
+    const formData = new FormData();
+    formData.append('message', message);
+    formData.append('file', file);
 
-  return apiFetch(`/ai/chat${query}`, {
+    if (keycloak.authenticated) {
+      await keycloak.updateToken(30);
+    }
+
+    const headers = new Headers();
+
+    if (keycloak.token) {
+      headers.set('Authorization', `Bearer ${keycloak.token}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/ai/chat/resource`, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI resource chat failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  return apiFetch('/ai/chat', {
     method: 'POST',
     body: JSON.stringify({ message }),
   });
