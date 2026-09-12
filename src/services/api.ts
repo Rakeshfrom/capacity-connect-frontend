@@ -707,9 +707,24 @@ export async function extractAIResource(file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
-  return apiFetch('/ai/resource', {
+  if (keycloak.authenticated) {
+    await keycloak.updateToken(30);
+  }
+
+  const headers = new Headers();
+  if (keycloak.token) {
+    headers.set('Authorization', `Bearer ${keycloak.token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/ai/resource`, {
     method: 'POST',
     body: formData,
-    headers: {},
+    headers,
   });
+
+  if (!response.ok) {
+    throw new Error(`Resource extraction failed: ${response.status}`);
+  }
+
+  return response.text();
 }
