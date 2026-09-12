@@ -14,13 +14,12 @@ import {
 import { Visibility, VisibilityOff, Google } from '@mui/icons-material';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import keycloak from '../../../services/keycloak';
 import { loginWithCredentials } from '../../../services/auth';
 import { getCurrentUser } from '../../../services/api';
 
 const Login = () => {
-  const navigate = useNavigate();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -48,13 +47,14 @@ const Login = () => {
 
       const user = await getCurrentUser();
 
-      if (user.role === 'ADMIN') {
-        navigate('/admin/dashboard', { replace: true });
-      } else if (user.role === 'TRAINER') {
-        navigate('/trainer/dashboard', { replace: true });
-      } else {
-        navigate('/trainee/dashboard', { replace: true });
-      }
+      const dashboard =
+        user.role === 'ADMIN'
+          ? '/admin/dashboard'
+          : user.role === 'TRAINER'
+            ? '/trainer/dashboard'
+            : '/trainee/dashboard';
+
+      window.location.replace(dashboard);
     } catch (err) {
       setError(
         err instanceof Error
