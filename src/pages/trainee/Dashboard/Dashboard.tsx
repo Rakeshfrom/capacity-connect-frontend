@@ -302,16 +302,22 @@ Return plain text in 2 short sentences.`
 
   const currentStreak = useMemo(() => {
     let streak = 0;
+    const today = new Date();
 
-    for (let i = 0; i < heatmapDays.length; i++) {
-      const item = heatmapDays[heatmapDays.length - 1 - i];
+    for (let i = 0; i < 365; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const key = date.toISOString().slice(0, 10);
 
-      if (item.count > 0) streak++;
-      else break;
+      if ((activityMap.get(key) || 0) > 0) {
+        streak++;
+      } else {
+        break;
+      }
     }
 
     return streak;
-  }, [heatmapDays]);
+  }, [activityMap]);
 
   const activityLevel = (count: number) => {
     if (count <= 0) return '#E8EFF3';
@@ -1199,24 +1205,107 @@ Return plain text in 2 short sentences.`
               sx={{
                 minWidth: 850,
                 display: 'grid',
-                gridTemplateColumns: 'repeat(53, 1fr)',
-                gridAutoRows: '12px',
-                gridAutoFlow: 'column',
-                gap: '4px',
+                gridTemplateColumns: '34px 1fr',
+                columnGap: 1,
               }}
             >
-              {heatmapDays.map((day) => (
-                <Box
-                  key={day.date}
-                  title={`${day.date}: ${day.count} learning activity`}
-                  sx={{
-                    width: 11,
-                    height: 11,
-                    borderRadius: '2px',
-                    bgcolor: activityLevel(day.count),
-                  }}
-                />
-              ))}
+              <Box />
+
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(53, 1fr)',
+                  height: 22,
+                  alignItems: 'start',
+                }}
+              >
+                {Array.from({ length: 53 }, (_, column) => {
+                  const day = heatmapDays[column * 7];
+                  if (!day) return <Box key={column} />;
+
+                  const date = new Date(`${day.date}T00:00:00`);
+                  const month = date.toLocaleDateString('en-US', {
+                    month: 'short',
+                  });
+
+                  const previous = column > 0 ? heatmapDays[(column - 1) * 7] : null;
+                  const previousMonth = previous
+                    ? new Date(`${previous.date}T00:00:00`).getMonth()
+                    : -1;
+
+                  return (
+                    <Box
+                      key={column}
+                      sx={{
+                        fontSize: '.68rem',
+                        color: colors.text,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {date.getMonth() !== previousMonth ? month : ''}
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateRows: 'repeat(7, 12px)',
+                  gap: '4px',
+                  alignItems: 'center',
+                }}
+              >
+                {['Mon', '', 'Wed', '', 'Fri', '', 'Sun'].map((label) => (
+                  <Typography
+                    key={label}
+                    sx={{
+                      fontSize: '.62rem',
+                      lineHeight: '12px',
+                      color: colors.text,
+                    }}
+                  >
+                    {label}
+                  </Typography>
+                ))}
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(53, 1fr)',
+                  gridTemplateRows: 'repeat(7, 12px)',
+                  gridAutoFlow: 'column',
+                  gap: '4px',
+                }}
+              >
+                {heatmapDays.map((day) => (
+                  <Box
+                    key={day.date}
+                    title={`${new Date(`${day.date}T00:00:00`).toLocaleDateString(
+                      'en-US',
+                      {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      }
+                    )} — ${day.count} learning activit${day.count === 1 ? 'y' : 'ies'}`}
+                    sx={{
+                      width: 11,
+                      height: 11,
+                      borderRadius: '2px',
+                      bgcolor: activityLevel(day.count),
+                      cursor: 'pointer',
+                      transition: 'transform .12s ease',
+                      '&:hover': {
+                        transform: 'scale(1.25)',
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
             </Box>
 
             <Box
