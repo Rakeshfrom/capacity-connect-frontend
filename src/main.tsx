@@ -6,7 +6,7 @@ import keycloak from './services/keycloak';
 
 keycloak
   .init({
-    onLoad: 'login-required',
+    onLoad: 'check-sso',
     pkceMethod: 'S256',
     checkLoginIframe: false,
     silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
