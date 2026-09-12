@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Box, Paper, TextField, IconButton, Typography, Chip, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import { chatWithAI } from '../services/api';
+import { chatWithAI, chatWithAIResourceLink, getMyStudyResource, apiFetchBlob } from '../services/api';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -15,21 +15,51 @@ export default function AiChatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [resource, setResource] = useState<File | null>(null);
+    const [resourceUrl, setResourceUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const resourceId = new URLSearchParams(window.location.search).get('resourceId');
+    if (!resourceId) return;
+
+    const loadResource = async () => {
+      try {
+        const resourceData = await getMyStudyResource(Number(resourceId));
+
+        if (resourceData?.type === 'FILE') {
+          const blob = await apiFetchBlob(`/trainee/resources/${resourceId}/file`);
+          const file = new File(
+            [blob],
+            resourceData.originalFileName || resourceData.title || 'resource',
+            { type: resourceData.contentType || blob.type || 'application/octet-stream' }
+          );
+          setResource(file);
+        } else if (resourceData?.type === 'LINK' && resourceData?.url) {
+          setResourceUrl(resourceData.url);
+        }
+      } catch (error) {
+        console.error('Failed to load selected resource:', error);
+      }
+    };
+
+    loadResource();
+  }, []);
+
 
   const sendMessage = async (text = input) => {
     const message = text.trim();
     if (!message || loading) return;
 
     const attachedFile = resource;
+      const attachedUrl = resourceUrl;
 
     setMessages(prev => [
       ...prev,
       {
         role: 'user',
         text: message,
-        attachmentName: attachedFile?.name,
+        attachmentName: attachedFile?.name || (attachedUrl ? '🔗 Linked resource' : undefined),
       },
     ]);
     setInput('');
@@ -37,7 +67,12 @@ export default function AiChatbot() {
     setLoading(true);
 
     try {
-      const result = await chatWithAI(message, resource) as {
+      const result = attachedUrl
+          ? await chatWithAIResourceLink(message, attachedUrl) as {
+              answer: string;
+              quickQueries: string[];
+            }
+          : await chatWithAI(message, attachedFile) as {
         answer: string;
         quickQueries: string[];
       };

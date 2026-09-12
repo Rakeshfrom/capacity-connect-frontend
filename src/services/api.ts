@@ -2,7 +2,7 @@ import keycloak from './keycloak';
 
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || ''}/api`;
 
-async function apiFetch(
+export async function apiFetch(
     path: string,
     options: RequestInit = {}
 ) {
@@ -751,4 +751,36 @@ export async function extractAIResource(file: File) {
   }
 
   return response.text();
+}
+
+export async function getMyStudyResource(id: number) {
+  return apiFetch(`/trainee/resources/${id}`);
+}
+
+export async function chatWithAIResourceLink(message: string, url: string) {
+  if (keycloak.authenticated) {
+    await keycloak.updateToken(30);
+  }
+
+  const formData = new FormData();
+  formData.append('message', message);
+  formData.append('url', url);
+
+  const headers = new Headers();
+
+  if (keycloak.token) {
+    headers.set('Authorization', `Bearer ${keycloak.token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/ai/chat/link`, {
+    method: 'POST',
+    body: formData,
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`AI link chat failed: ${response.status}`);
+  }
+
+  return response.json();
 }
