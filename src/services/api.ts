@@ -843,3 +843,18 @@ export async function generateAiCourse(
     }),
   });
 }
+
+export async function registerAccount(
+  fullName: string,
+  email: string,
+  password: string
+) {
+  return apiFetch('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      fullName,
+      email,
+      password,
+    }),
+  });
+}

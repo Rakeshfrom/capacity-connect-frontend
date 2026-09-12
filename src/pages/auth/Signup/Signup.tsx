@@ -1,4 +1,6 @@
+import { useState, type FormEvent } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Container,
@@ -11,9 +13,70 @@ import {
 import GitHubIcon from '@mui/icons-material/GitHub';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { registerAccount } from '../../../services/api';
+
+const passwordRule =
+  /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 const Signup = () => {
+  const navigate = useNavigate();
+
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
+      setError('Please fill in all fields.');
+      return;
+    }
+
+    if (!passwordRule.test(password)) {
+      setError(
+        'Password must be at least 8 characters and contain uppercase, lowercase, number and special character.'
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await registerAccount(
+        fullName.trim(),
+        email.trim().toLowerCase(),
+        password
+      );
+
+      setSuccess('Account created successfully. Redirecting to sign in...');
+
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 1000);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to create account. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -53,51 +116,67 @@ const Signup = () => {
             Register for access to CAPACITY CONNECT.
           </Typography>
 
-          <Stack spacing={2} sx={{ mt: 3.5 }}>
-            <TextField
-              fullWidth
-              label="Full name"
-              autoComplete="name"
-            />
+          <Box component="form" onSubmit={handleSubmit}>
+            <Stack spacing={2} sx={{ mt: 3.5 }}>
+              {error && <Alert severity="error">{error}</Alert>}
+              {success && <Alert severity="success">{success}</Alert>}
 
-            <TextField
-              fullWidth
-              label="Email address"
-              type="email"
-              autoComplete="email"
-            />
+              <TextField
+                fullWidth
+                label="Full name"
+                autoComplete="name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
 
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              autoComplete="new-password"
-            />
+              <TextField
+                fullWidth
+                label="Email address"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
 
-            <TextField
-              fullWidth
-              label="Confirm password"
-              type="password"
-              autoComplete="new-password"
-            />
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                helperText="Min 8 characters: uppercase, lowercase, number and special character."
+              />
 
-            <Button
-              variant="contained"
-              fullWidth
-              sx={{
-                py: 1.35,
-                bgcolor: '#0B5A91',
-                textTransform: 'none',
-                fontSize: '1rem',
-                fontWeight: 700,
-                '&:hover': {
-                  bgcolor: '#084A78',
-                },
-              }}
-            >
-              Create account
-            </Button>
-          </Stack>
+              <TextField
+                fullWidth
+                label="Confirm password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={loading}
+                sx={{
+                  py: 1.35,
+                  bgcolor: '#0B5A91',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  '&:hover': {
+                    bgcolor: '#084A78',
+                  },
+                }}
+              >
+                {loading ? 'Creating account...' : 'Create account'}
+              </Button>
+            </Stack>
+          </Box>
 
           <Divider sx={{ my: 3 }}>
             <Typography sx={{ color: '#80909D', fontSize: '0.9rem' }}>
