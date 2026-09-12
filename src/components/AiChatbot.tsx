@@ -105,7 +105,7 @@ export default function AiChatbot() {
             try {
               const text = await extractAIResource(file);
               setResource(file);
-              sessionStorage.setItem('aiResourceText', text);
+              setResourceText(text);
             } catch {
               setResource(null);
     setResourceText('');
@@ -121,7 +121,10 @@ export default function AiChatbot() {
             <Chip
               label="Remove"
               size="small"
-              onDelete={() => setResource(null)}
+              onDelete={() => {
+                setResource(null);
+                setResourceText('');
+              }}
             />
           </Box>
         )}
