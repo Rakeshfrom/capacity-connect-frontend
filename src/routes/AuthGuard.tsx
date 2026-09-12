@@ -20,7 +20,9 @@ const getDashboard = (roles: Role[]) => {
 const AuthGuard = ({ children, role }: AuthGuardProps) => {
   const { user, loading } = useAuth();
 
-  if (!keycloak.authenticated) {
+  const customToken = sessionStorage.getItem('capacity-connect.access-token');
+
+  if (!keycloak.authenticated && !customToken) {
     return <Navigate to="/login" replace />;
   }
 
