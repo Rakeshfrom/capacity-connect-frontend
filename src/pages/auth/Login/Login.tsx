@@ -1,65 +1,94 @@
 import {
+  Alert,
   Box,
   Button,
-  Checkbox,
+  CircularProgress,
   Divider,
-  FormControlLabel,
+  IconButton,
+  InputAdornment,
   Paper,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import GoogleIcon from '@mui/icons-material/Google';
-import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Visibility, VisibilityOff, Google } from '@mui/icons-material';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import keycloak from '../../../services/keycloak';
-
-const getDashboard = () => {
-  const token = keycloak.tokenParsed as {
-    realm_access?: { roles?: string[] };
-    resource_access?: Record<string, { roles?: string[] }>;
-  } | undefined;
-
-  const roles = new Set([
-    ...(token?.realm_access?.roles ?? []),
-    ...(token?.resource_access?.['capacity-connect-frontend']?.roles ?? []),
-  ]);
-
-  if (roles.has('ADMIN')) return '/admin/dashboard';
-  if (roles.has('TRAINER')) return '/trainer/dashboard';
-  return '/trainee/dashboard';
-};
+import { loginWithCredentials } from '../../../services/auth';
+import { getCurrentUser } from '../../../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
 
-  const login = async (idpHint?: string) => {
-    try {
-      if (keycloak.authenticated) {
-        navigate(getDashboard(), { replace: true });
-        return;
-      }
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState('');
 
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError('');
+
+    if (!username.trim() || !password) {
+      setError('Please enter your username/email and password.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await loginWithCredentials(
+        username.trim(),
+        password
+      );
+
+      const user = await getCurrentUser();
+
+      if (user.role === 'ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (user.role === 'TRAINER') {
+        navigate('/trainer/dashboard', { replace: true });
+      } else {
+        navigate('/trainee/dashboard', { replace: true });
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to sign in. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
       await keycloak.login({
-        prompt: 'login',
-        ...(idpHint ? { idpHint } : {}),
+        idpHint: 'google',
         redirectUri: `${window.location.origin}/login`,
       });
-    } catch (error) {
-      console.error('Login failed:', error);
+    } catch {
+      setGoogleLoading(false);
+      setError('Google sign-in could not be started.');
     }
   };
 
   return (
     <Box
       sx={{
-        minHeight: 'calc(100vh - 120px)',
-        bgcolor: '#F4F8FB',
+        minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         px: 2,
-        py: { xs: 4, md: 7 },
+        py: 5,
+        bgcolor: '#F5F8FA',
       }}
     >
       <Paper
@@ -68,161 +97,151 @@ const Login = () => {
           width: '100%',
           maxWidth: 460,
           p: { xs: 3, sm: 4.5 },
-          border: '1px solid #D9E5EC',
           borderRadius: 3,
-          bgcolor: '#fff',
+          border: '1px solid #DCE6EC',
         }}
       >
-        <Stack spacing={0.8} sx={{ mb: 3.5 }}>
-          <Typography
-            sx={{
-              color: '#0B5A91',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              letterSpacing: 1,
-            }}
-          >
-            CAPACITY CONNECT
-          </Typography>
-
-          <Typography
-            variant="h4"
-            sx={{
-              color: '#173F60',
-              fontWeight: 800,
-              fontSize: { xs: '1.9rem', sm: '2.2rem' },
-            }}
-          >
-            Welcome back
-          </Typography>
-
-          <Typography sx={{ color: '#687B89', lineHeight: 1.6 }}>
-            Sign in to continue your learning journey.
-          </Typography>
-        </Stack>
-
-        <Stack spacing={2}>
-          <TextField
-            fullWidth
-            label="Email or username"
-            placeholder="Enter your email or username"
-            autoComplete="username"
-            disabled
-          />
-
-          <TextField
-            fullWidth
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            autoComplete="current-password"
-            disabled
-          />
-
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <FormControlLabel
-              control={<Checkbox size="small" />}
-              label={
-                <Typography sx={{ fontSize: '0.9rem', color: '#607583' }}>
-                  Remember me
-                </Typography>
-              }
-            />
-
-            <Button
-              size="small"
+        <Stack spacing={3}>
+          <Box>
+            <Typography
               sx={{
                 color: '#0B5A91',
-                textTransform: 'none',
-                fontWeight: 700,
+                fontWeight: 800,
+                fontSize: '1.45rem',
+                letterSpacing: '0.04em',
               }}
             >
-              Forgot password?
-            </Button>
+              CAPACITY CONNECT
+            </Typography>
+
+            <Typography
+              variant="h4"
+              sx={{
+                mt: 2,
+                color: '#173F60',
+                fontWeight: 800,
+              }}
+            >
+              Welcome back
+            </Typography>
+
+            <Typography sx={{ mt: 0.8, color: '#718594' }}>
+              Sign in to continue your learning journey.
+            </Typography>
           </Box>
 
+          {error && <Alert severity="error">{error}</Alert>}
+
+          <Box component="form" onSubmit={handleSubmit}>
+            <Stack spacing={2.2}>
+              <TextField
+                label="Username or email"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                fullWidth
+                autoComplete="username"
+              />
+
+              <TextField
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+                autoComplete="current-password"
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() =>
+                            setShowPassword((value) => !value)
+                          }
+                          edge="end"
+                        >
+                          {showPassword ? (
+                            <VisibilityOff />
+                          ) : (
+                            <Visibility />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+
+              <Box sx={{ textAlign: 'right' }}>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    color: '#0B5A91',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  Forgot password?
+                </Link>
+              </Box>
+
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={loading}
+                sx={{
+                  py: 1.35,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  bgcolor: '#0B5A91',
+                  '&:hover': { bgcolor: '#084873' },
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </Stack>
+          </Box>
+
+          <Divider>or continue with</Divider>
+
           <Button
-            fullWidth
-            variant="contained"
-            endIcon={<ArrowForwardRoundedIcon />}
-            onClick={() => login()}
+            variant="outlined"
+            size="large"
+            startIcon={<Google />}
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
             sx={{
-              py: 1.35,
-              bgcolor: '#0B5A91',
-              borderRadius: 1.5,
+              py: 1.25,
               textTransform: 'none',
               fontWeight: 700,
-              fontSize: '1rem',
-              '&:hover': { bgcolor: '#084A78' },
             }}
           >
-            Continue to secure login
+            {googleLoading ? 'Connecting...' : 'Continue with Google'}
           </Button>
-        </Stack>
 
-        <Divider sx={{ my: 3 }}>
-          <Typography sx={{ color: '#8A9AA5', fontSize: '0.8rem' }}>
-            OR
-          </Typography>
-        </Divider>
-
-        <Button
-          fullWidth
-          variant="outlined"
-          startIcon={<GoogleIcon />}
-          onClick={() => login('google')}
-          sx={{
-            py: 1.25,
-            borderColor: '#CBD8E0',
-            color: '#244A66',
-            borderRadius: 1.5,
-            textTransform: 'none',
-            fontWeight: 700,
-          }}
-        >
-          Continue with Google
-        </Button>
-
-        <Typography
-          sx={{
-            mt: 3,
-            textAlign: 'center',
-            color: '#657887',
-            fontSize: '0.95rem',
-          }}
-        >
-          New to CAPACITY CONNECT?{' '}
-          <Button
-            component={RouterLink}
-            to="/signup"
+          <Typography
             sx={{
-              color: '#0B5A91',
-              textTransform: 'none',
-              fontWeight: 800,
-              p: 0,
-              minWidth: 'auto',
+              textAlign: 'center',
+              color: '#718594',
             }}
           >
-            Create account
-          </Button>
-        </Typography>
-
-        <Typography
-          sx={{
-            mt: 2.5,
-            textAlign: 'center',
-            color: '#8A9AA5',
-            fontSize: '0.75rem',
-          }}
-        >
-          Secure authentication powered by CAPACITY CONNECT
-        </Typography>
+            Don't have an account?{' '}
+            <Link
+              to="/signup"
+              style={{
+                color: '#0B5A91',
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
+            >
+              Create account
+            </Link>
+          </Typography>
+        </Stack>
       </Paper>
     </Box>
   );
