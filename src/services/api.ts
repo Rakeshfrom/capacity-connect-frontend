@@ -808,3 +808,37 @@ export async function chatWithAIResourceLink(message: string, url: string) {
 export async function getMyStudyResources() {
   return apiFetch("/trainee/resources");
 }
+
+export async function generateAiAssessment(
+  topic: string,
+  context: string,
+  questionCount: number,
+  difficulty: string
+) {
+  return apiFetch("/ai/assessment/generate", {
+    method: "POST",
+    body: JSON.stringify({
+      topic,
+      context,
+      questionCount,
+      difficulty,
+    }),
+  });
+}
+
+export async function generateAiCourse(
+  topic: string,
+  context: string,
+  level: string,
+  moduleCount: number
+) {
+  return apiFetch("/ai/course/generate", {
+    method: "POST",
+    body: JSON.stringify({
+      topic,
+      context,
+      level,
+      moduleCount,
+    }),
+  });
+}

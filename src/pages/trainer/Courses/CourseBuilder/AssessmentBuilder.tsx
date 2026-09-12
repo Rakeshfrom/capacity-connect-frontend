@@ -27,6 +27,7 @@ import {
   createQuestion,
   deleteQuestion,
   getQuestionsByAssessment,
+  generateAiAssessment,
 } from '../../../../services/api';
 
 type Question = {
@@ -69,6 +70,11 @@ const AssessmentBuilder = ({
   const [saving, setSaving] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [error, setError] = useState('');
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiContext, setAiContext] = useState('');
+  const [aiQuestionCount, setAiQuestionCount] = useState(5);
+  const [aiDifficulty, setAiDifficulty] = useState('MEDIUM');
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   const [questionText, setQuestionText] = useState('');
   const [optionA, setOptionA] = useState('');
@@ -87,6 +93,56 @@ const AssessmentBuilder = ({
     setOptionD('');
     setCorrectOption('A');
     setMarks(1);
+  };
+
+  const generateAIQuestions = async () => {
+    if (!aiTopic.trim()) {
+      setError('AI topic is required.');
+      return;
+    }
+
+    try {
+      setGeneratingAI(true);
+      setError('');
+
+      const response = await generateAiAssessment(
+        aiTopic.trim(),
+        aiContext.trim(),
+        aiQuestionCount,
+        aiDifficulty
+      );
+
+      const raw =
+        typeof response === 'string'
+          ? response
+          : JSON.stringify(response);
+
+      const parsed = JSON.parse(raw);
+      const generated = Array.isArray(parsed.questions)
+        ? parsed.questions
+        : [];
+
+      const mapped: Question[] = generated.map((q: any, index: number) => ({
+        id: -(index + 1),
+        assessmentId: assessmentId || 0,
+        questionText: q.questionText || '',
+        optionA: q.optionA || '',
+        optionB: q.optionB || '',
+        optionC: q.optionC || '',
+        optionD: q.optionD || '',
+        correctOption: ['A', 'B', 'C', 'D'].includes(q.correctOption)
+          ? q.correctOption
+          : 'A',
+        marks: Number(q.marks) || 1,
+      }));
+
+      setQuestions(mapped);
+    } catch (err) {
+      console.error(err);
+      setError('Unable to generate AI questions.');
+    } finally {
+      setGeneratingAI(false);
+    }
   };
 
   const saveAssessmentDetails = async () => {
@@ -178,6 +234,37 @@ const AssessmentBuilder = ({
     } catch (err) {
       console.error(err);
       setError('Unable to save question.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveAIQuestions = async () => {
+    if (!assessmentId || questions.length === 0) return;
+
+    try {
+      setSaving(true);
+      setError('');
+
+      const temporaryQuestions = questions.filter((q) => q.id < 0);
+
+      for (const question of temporaryQuestions) {
+        await createQuestion({
+          assessmentId,
+          questionText: question.questionText.trim(),
+          optionA: question.optionA.trim(),
+          optionB: question.optionB.trim(),
+          optionC: question.optionC.trim(),
+          optionD: question.optionD.trim(),
+          correctOption: question.correctOption,
+          marks: question.marks,
+        });
+      }
+
+      await loadQuestions();
+    } catch (err) {
+      console.error(err);
+      setError('Unable to save AI questions.');
     } finally {
       setSaving(false);
     }
@@ -481,6 +568,92 @@ const AssessmentBuilder = ({
               ) : (
                 <>
                   <Stack spacing={1.25}>
+                    {mode === 'AI' && (
+                      <Box
+                        sx={{
+                          mb: 2,
+                          p: 2,
+                          border: '1px solid #DCE8F0',
+                          borderRadius: 2,
+                        }}
+                      >
+                        <Typography
+                          sx={{ fontWeight: 700, color: '#173F60', mb: 1.5 }}
+                        >
+                          AI Question Generation
+                        </Typography>
+
+                        <Stack spacing={1.5}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Topic"
+                            value={aiTopic}
+                            onChange={(e) => setAiTopic(e.target.value)}
+                            placeholder="e.g. Weather Forecasting"
+                          />
+
+                          <TextField
+                            fullWidth
+                            size="small"
+                            multiline
+                            minRows={2}
+                            label="Context / Learning Content"
+                            value={aiContext}
+                            onChange={(e) => setAiContext(e.target.value)}
+                            placeholder="Add module content or instructions..."
+                          />
+
+                          <Box sx={{ display: 'flex', gap: 1.5 }}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type="number"
+                              label="Questions"
+                              value={aiQuestionCount}
+                              onChange={(e) =>
+                                setAiQuestionCount(
+                                  Math.min(
+                                    30,
+                                    Math.max(1, Number(e.target.value) || 1)
+                                  )
+                                )
+                              }
+                            />
+
+                            <TextField
+                              fullWidth
+                              size="small"
+                              select
+                              label="Difficulty"
+                              value={aiDifficulty}
+                              onChange={(e) => setAiDifficulty(e.target.value)}
+                            >
+                              <MenuItem value="EASY">Easy</MenuItem>
+                              <MenuItem value="MEDIUM">Medium</MenuItem>
+                              <MenuItem value="HARD">Hard</MenuItem>
+                            </TextField>
+                          </Box>
+
+                          <Button
+                            variant="contained"
+                            startIcon={
+                              generatingAI ? (
+                                <CircularProgress size={18} color="inherit" />
+                              ) : (
+                                <AutoAwesomeOutlinedIcon />
+                              )
+                            }
+                            disabled={generatingAI}
+                            onClick={generateAIQuestions}
+                            sx={{ textTransform: 'none', fontWeight: 700 }}
+                          >
+                            {generatingAI ? 'Generating...' : 'Generate with AI'}
+                          </Button>
+                        </Stack>
+                      </Box>
+                    )}
+
                     {questions.map((question, index) => (
                       <Card
                         key={question.id}
@@ -498,14 +671,20 @@ const AssessmentBuilder = ({
                             }}
                           >
                             <Box sx={{ flex: 1 }}>
-                              <Typography
-                                sx={{
-                                  color: '#173F60',
-                                  fontWeight: 700,
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label={`Question ${index + 1}`}
+                                value={question.questionText}
+                                onChange={(e) => {
+                                  const next = [...questions];
+                                  next[index] = {
+                                    ...next[index],
+                                    questionText: e.target.value,
+                                  };
+                                  setQuestions(next);
                                 }}
-                              >
-                                {index + 1}. {question.questionText}
-                              </Typography>
+                              />
 
                               <Typography
                                 sx={{
@@ -544,17 +723,44 @@ const AssessmentBuilder = ({
                                 D. {question.optionD}
                               </Typography>
 
-                              <Typography
-                                sx={{
-                                  mt: 1,
-                                  color: '#0B5A91',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                Correct: {question.correctOption} ·{' '}
-                                {question.marks} mark
-                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
+                                <TextField
+                                  select
+                                  size="small"
+                                  label="Correct Option"
+                                  value={question.correctOption}
+                                  onChange={(e) => {
+                                    const next = [...questions];
+                                    next[index] = {
+                                      ...next[index],
+                                      correctOption: e.target.value as 'A' | 'B' | 'C' | 'D',
+                                    };
+                                    setQuestions(next);
+                                  }}
+                                  sx={{ minWidth: 150 }}
+                                >
+                                  <MenuItem value="A">Option A</MenuItem>
+                                  <MenuItem value="B">Option B</MenuItem>
+                                  <MenuItem value="C">Option C</MenuItem>
+                                  <MenuItem value="D">Option D</MenuItem>
+                                </TextField>
+
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  label="Marks"
+                                  value={question.marks}
+                                  onChange={(e) => {
+                                    const next = [...questions];
+                                    next[index] = {
+                                      ...next[index],
+                                      marks: Math.max(1, Number(e.target.value) || 1),
+                                    };
+                                    setQuestions(next);
+                                  }}
+                                  sx={{ width: 120 }}
+                                />
+                              </Box>
                             </Box>
 
                             <IconButton
@@ -709,6 +915,17 @@ const AssessmentBuilder = ({
           >
             Cancel
           </Button>
+
+          {mode === 'AI' && questions.some((q) => q.id < 0) && (
+            <Button
+              variant="outlined"
+              onClick={saveAIQuestions}
+              disabled={saving}
+              sx={{ textTransform: 'none', fontWeight: 700 }}
+            >
+              {saving ? 'Saving...' : 'Save AI Questions'}
+            </Button>
+          )}
 
           <Button
             onClick={saveQuestion}

@@ -21,9 +21,12 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import PeopleOutlineOutlinedIcon from '@mui/icons-material/PeopleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { useNavigate } from 'react-router-dom';
 import {
   createCourse,
+  createCourseModule,
+  generateAiCourse,
   getTrainerCourses,
   getTrainerAnalytics,
 } from '../../../services/api';
@@ -75,6 +78,12 @@ const TrainerCourses = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState<CourseForm>(initialForm);
+  const [aiMode, setAiMode] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiContext, setAiContext] = useState('');
+  const [aiModuleCount, setAiModuleCount] = useState(5);
+  const [aiModules, setAiModules] = useState<{ title: string; description: string }[]>([]);
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   const loadCourses = async () => {
     if (!user) return;
@@ -101,6 +110,11 @@ const TrainerCourses = () => {
 
   const openCreate = () => {
     setForm(initialForm);
+    setAiMode(false);
+    setAiTopic('');
+    setAiContext('');
+    setAiModuleCount(5);
+    setAiModules([]);
     setError('');
     setOpenDialog(true);
   };
@@ -133,7 +147,7 @@ const TrainerCourses = () => {
     setError('');
 
     try {
-      await createCourse({
+      const createdCourse = await createCourse({
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category.trim(),
@@ -142,6 +156,22 @@ const TrainerCourses = () => {
         status: form.status,
         department: form.department.trim(),
       });
+
+      const createdCourseId = Number(createdCourse?.id);
+
+      if (createdCourseId && aiModules.length > 0) {
+        for (let index = 0; index < aiModules.length; index++) {
+          const module = aiModules[index];
+
+          if (!module.title.trim()) continue;
+
+          await createCourseModule(createdCourseId, {
+            title: module.title.trim(),
+            description: module.description.trim(),
+            orderIndex: index,
+          });
+        }
+      }
 
       setOpenDialog(false);
       setForm(initialForm);
@@ -424,15 +454,266 @@ const TrainerCourses = () => {
 
       <Dialog
         open={openDialog}
+        maxWidth="md"
+
         onClose={closeDialog}
         fullWidth
-        maxWidth="sm"
       >
         <DialogTitle sx={{ color: '#173F60', fontWeight: 800 }}>
           Create New Course
         </DialogTitle>
 
         <DialogContent>
+          <Box
+            sx={{
+              mb: 3,
+              p: 2,
+              borderRadius: 2,
+              border: '1px solid #DCE8F0',
+              bgcolor: aiMode ? '#F3F8FC' : '#FAFCFD',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                gap: 1.5,
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 700, color: '#173F60' }}>
+                  Create with AI
+                </Typography>
+                <Typography sx={{ color: '#657887', fontSize: '0.88rem' }}>
+                  Generate a course draft with title, description and modules.
+                </Typography>
+              </Box>
+
+              <Button
+                variant={aiMode ? 'contained' : 'outlined'}
+                startIcon={<AutoAwesomeOutlinedIcon />}
+                onClick={() => setAiMode((value) => !value)}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                {aiMode ? 'AI Enabled' : 'Use AI'}
+              </Button>
+            </Box>
+
+            {aiMode && (
+              <Box sx={{ mt: 2.5 }}>
+                <TextField
+                  fullWidth
+                  label="Course Topic"
+                  value={aiTopic}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                  placeholder="e.g. Weather Forecasting Fundamentals"
+                  sx={{ mb: 2 }}
+                />
+
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  label="Learning Context / Instructions"
+                  value={aiContext}
+                  onChange={(e) => setAiContext(e.target.value)}
+                  placeholder="Optional: objectives, syllabus points, target learners..."
+                  sx={{ mb: 2 }}
+                />
+
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 2,
+                  }}
+                >
+                  <TextField
+                    select
+                    label="Level"
+                    value={form.level}
+                    onChange={(e) => updateField('level', e.target.value)}
+                    sx={{ minWidth: 180 }}
+                  >
+                    <MenuItem value="BEGINNER">Beginner</MenuItem>
+                    <MenuItem value="INTERMEDIATE">Intermediate</MenuItem>
+                    <MenuItem value="ADVANCED">Advanced</MenuItem>
+                  </TextField>
+
+                  <TextField
+                    type="number"
+                    label="Modules"
+                    value={aiModuleCount}
+                    onChange={(e) =>
+                      setAiModuleCount(
+                        Math.max(1, Math.min(15, Number(e.target.value) || 1))
+                      )
+                    }
+                    sx={{ width: 140 }}
+                  />
+
+                  <Button
+                    variant="contained"
+                    startIcon={<AutoAwesomeOutlinedIcon />}
+                    disabled={generatingAI || !aiTopic.trim()}
+                    onClick={async () => {
+                      try {
+                        setGeneratingAI(true);
+                        setError('');
+
+                        const raw = await generateAiCourse(
+                          aiTopic,
+                          aiContext,
+                          form.level,
+                          aiModuleCount
+                        );
+
+                        const generated =
+                          typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+                        setAiModules(
+                          Array.isArray(generated.modules)
+                            ? generated.modules.map((module: any) => ({
+                                title: module.title || '',
+                                description: module.description || '',
+                              }))
+                            : []
+                        );
+
+                        setForm((current) => ({
+                          ...current,
+                          title: generated.title || current.title,
+                          description:
+                            generated.description || current.description,
+                          category:
+                            generated.category || current.category,
+                          department:
+                            generated.department || current.department,
+                          level: generated.level || current.level,
+                          durationHours: String(
+                            generated.durationHours || current.durationHours || ''
+                          ),
+                        }));
+
+                        setError('');
+                        window.dispatchEvent(
+                          new CustomEvent('capacity-ai-course-draft', {
+                            detail: generated,
+                          })
+                        );
+                      } catch (error) {
+                        console.error('AI course generation failed:', error);
+                        setError(
+                          'AI could not generate the course. Please try again.'
+                        );
+                      } finally {
+                        setGeneratingAI(false);
+                      }
+                    }}
+                    sx={{ textTransform: 'none', fontWeight: 700 }}
+                  >
+                    {generatingAI ? 'Generating...' : 'Generate Draft'}
+                  </Button>
+                </Box>
+
+                {aiModules.length > 0 && (
+                  <Box sx={{ mt: 2.5 }}>
+                    <Typography
+                      sx={{ fontWeight: 700, color: '#173F60', mb: 1.5 }}
+                    >
+                      AI Generated Modules
+                    </Typography>
+
+                    <Stack spacing={1.5}>
+                      {aiModules.map((module, index) => (
+                        <Box
+                          key={index}
+                          sx={{
+                            p: 1.5,
+                            border: '1px solid #DCE8F0',
+                            borderRadius: 2,
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label={`Module ${index + 1} Title`}
+                              value={module.title}
+                              onChange={(e) => {
+                                const next = [...aiModules];
+                                next[index] = {
+                                  ...next[index],
+                                  title: e.target.value,
+                                };
+                                setAiModules(next);
+                              }}
+                            />
+
+                            <Button
+                              color="error"
+                              onClick={() =>
+                                setAiModules(
+                                  aiModules.filter((_, i) => i !== index)
+                                )
+                              }
+                              sx={{ minWidth: 80 }}
+                            >
+                              Delete
+                            </Button>
+                          </Box>
+
+                          <TextField
+                            fullWidth
+                            size="small"
+                            multiline
+                            minRows={2}
+                            label="Module Description"
+                            value={module.description}
+                            onChange={(e) => {
+                              const next = [...aiModules];
+                              next[index] = {
+                                ...next[index],
+                                description: e.target.value,
+                              };
+                              setAiModules(next);
+                            }}
+                            sx={{ mt: 1.5 }}
+                          />
+                        </Box>
+                      ))}
+
+                      <Button
+                        variant="outlined"
+                        onClick={() =>
+                          setAiModules([
+                            ...aiModules,
+                            { title: '', description: '' },
+                          ])
+                        }
+                        sx={{
+                          alignSelf: 'flex-start',
+                          textTransform: 'none',
+                          fontWeight: 700,
+                        }}
+                      >
+                        + Add Module
+                      </Button>
+                    </Stack>
+                  </Box>
+                )}
+
+                <Typography
+                  sx={{ mt: 1.5, color: '#657887', fontSize: '0.8rem' }}
+                >
+                  AI output is a draft. Review and edit all fields before saving.
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
           <Stack spacing={2.2} sx={{ pt: 1 }}>
             <TextField
               label="Course Title"
