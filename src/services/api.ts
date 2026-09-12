@@ -849,12 +849,33 @@ export async function registerAccount(
   email: string,
   password: string
 ) {
-  return apiFetch('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({
-      fullName,
-      email,
-      password,
-    }),
-  });
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL || ''}/api/auth/register`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fullName,
+        email,
+        password,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    let message = 'Unable to create account. Please try again.';
+
+    try {
+      const data = await response.json();
+      if (data?.message) message = data.message;
+    } catch {
+      // ignore invalid error response
+    }
+
+    throw new Error(message);
+  }
+
+  return response.json();
 }
