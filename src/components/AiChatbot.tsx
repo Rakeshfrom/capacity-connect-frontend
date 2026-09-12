@@ -14,6 +14,7 @@ export default function AiChatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [resource, setResource] = useState<File | null>(null);
+  const [resourceText, setResourceText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +27,7 @@ export default function AiChatbot() {
     setLoading(true);
 
     try {
-      const result = await chatWithAI(message, sessionStorage.getItem('aiResourceText') || '') as {
+      const result = await chatWithAI(message, resourceText) as {
         answer: string;
         quickQueries: string[];
       };
@@ -107,6 +108,7 @@ export default function AiChatbot() {
               sessionStorage.setItem('aiResourceText', text);
             } catch {
               setResource(null);
+    setResourceText('');
             }
           }}
         />
