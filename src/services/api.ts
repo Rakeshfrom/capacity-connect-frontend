@@ -35,7 +35,6 @@ export async function apiFetch(
     });
 
     if (response.status === 401) {
-        await keycloak.login();
         throw new Error('Authentication required');
     }
 
