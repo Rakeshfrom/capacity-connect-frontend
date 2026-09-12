@@ -7,6 +7,7 @@ import {
 } from 'react';
 import keycloak from '../services/keycloak';
 import { getCurrentUser } from '../services/api';
+import { getAccessToken } from '../services/auth';
 
 export interface CurrentUser {
   id: number;
@@ -41,7 +42,9 @@ const getCacheKey = () =>
 
 const readCachedUser = (): CurrentUser | null => {
   try {
-    const value = localStorage.getItem(getCacheKey());
+    const value =
+      sessionStorage.getItem(getCacheKey()) ||
+      localStorage.getItem(getCacheKey());
     return value ? JSON.parse(value) : null;
   } catch {
     return null;
@@ -60,7 +63,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(!cachedUser);
 
   useEffect(() => {
-    if (!keycloak.authenticated) {
+    const customToken = getAccessToken();
+
+    if (!keycloak.authenticated && !customToken) {
       setUser(null);
       setLoading(false);
       return;
@@ -74,6 +79,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(data);
         sessionStorage.setItem(
+          getCacheKey(),
+          JSON.stringify(data),
+        );
+        localStorage.setItem(
           getCacheKey(),
           JSON.stringify(data),
         );
