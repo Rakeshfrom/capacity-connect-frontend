@@ -182,6 +182,20 @@ export async function enrollInCourse(courseId: number) {
     });
 }
 
+export async function updateEnrollmentProgress(
+    enrollmentId: number,
+    progress: number
+) {
+    const safeProgress = Math.min(100, Math.max(0, Math.round(progress)));
+
+    return apiFetch(
+        `/enrollments/${enrollmentId}/progress?progress=${safeProgress}`,
+        {
+            method: 'PATCH',
+        }
+    );
+}
+
 export async function getAttemptsByTrainee() {
     return apiFetch('/assessment-attempts/me');
 }
