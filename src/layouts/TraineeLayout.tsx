@@ -34,7 +34,7 @@ const collapsedWidth = 72;
 const menuItems = [
   { label: 'Dashboard', path: '/trainee/dashboard', icon: <DashboardOutlined /> },
   { label: 'My Profile', path: '/trainee/profile', icon: <PersonOutlined /> },
-  { label: 'My Courses', path: '/trainee/courses', icon: <BookOutlined /> },
+  { label: 'Courses', path: '/trainee/courses', icon: <BookOutlined /> },
   { label: 'Assessments', path: '/trainee/assessments', icon: <AssessmentOutlined /> },
   { label: 'Certificates', path: '/trainee/certificates', icon: <WorkspacePremiumOutlined /> },
   { label: 'Feedback', path: '/trainee/feedback', icon: <FeedbackOutlined /> },
@@ -102,6 +102,8 @@ const TraineeLayout = () => {
         {menuItems.map((item) => {
           const active =
             location.pathname === item.path ||
+            (item.path === '/trainee/courses' &&
+              location.pathname.startsWith('/trainee/courses/')) ||
             (item.path === '/trainee/assessments' &&
               location.pathname.startsWith('/trainee/assessments/'));
 

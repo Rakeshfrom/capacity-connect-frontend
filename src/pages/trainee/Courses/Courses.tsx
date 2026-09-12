@@ -111,15 +111,46 @@ const Courses = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [courseData, enrollmentData, currentUser] = await Promise.all([
-          getCourses(),
-          getEnrollments(),
-          getCurrentUser(),
-        ]);
+        const [courseResult, enrollmentResult, userResult] =
+          await Promise.allSettled([
+            getCourses(),
+            getEnrollments(),
+            getCurrentUser(),
+          ]);
 
-        setCourses(Array.isArray(courseData) ? courseData : []);
-        setEnrollments(Array.isArray(enrollmentData) ? enrollmentData : []);
-        setUser(currentUser || {});
+        if (courseResult.status === 'rejected') {
+          throw courseResult.reason;
+        }
+
+        setCourses(
+          Array.isArray(courseResult.value)
+            ? courseResult.value
+            : []
+        );
+
+        if (enrollmentResult.status === 'fulfilled') {
+          setEnrollments(
+            Array.isArray(enrollmentResult.value)
+              ? enrollmentResult.value
+              : []
+          );
+        } else {
+          console.warn(
+            'Unable to load trainee enrollments:',
+            enrollmentResult.reason
+          );
+          setEnrollments([]);
+        }
+
+        if (userResult.status === 'fulfilled') {
+          setUser(userResult.value || {});
+        } else {
+          console.warn(
+            'Unable to load trainee profile for recommendations:',
+            userResult.reason
+          );
+          setUser({});
+        }
 
         try {
           const stored = localStorage.getItem(SAVED_KEY);
@@ -129,8 +160,13 @@ const Courses = () => {
           setSavedCourses([]);
         }
       } catch (err) {
-        console.error('Failed to load trainee course hub:', err);
-        setError('Unable to load courses right now. Please try again.');
+        console.error('Failed to load trainee course catalogue:', err);
+
+        setError(
+          err instanceof Error
+            ? `Unable to load course catalogue: ${err.message}`
+            : 'Unable to load course catalogue. Please try again.'
+        );
       } finally {
         setLoading(false);
       }
