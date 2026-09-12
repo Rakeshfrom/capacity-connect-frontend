@@ -1,39 +1,74 @@
 import { useEffect } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
-import keycloak from '../../services/keycloak';
-import { getCurrentUser } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import keycloak from '../../services/keycloak';
+
+const ACCESS_TOKEN_KEY = 'capacity-connect.access-token';
 
 const GoogleCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let active = true;
+
     const completeLogin = async () => {
       try {
-        if (!keycloak.authenticated) {
-          navigate('/login', { replace: true });
-          return;
+        if (!keycloak.authenticated || !keycloak.token) {
+          throw new Error('Keycloak authentication was not completed.');
         }
 
-        sessionStorage.removeItem('capacity-connect.access-token');
+        const accessToken = keycloak.token;
 
-        const user = await getCurrentUser();
+        sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
 
-        const dashboard =
-          user.role === 'ADMIN'
-            ? '/admin/dashboard'
-            : user.role === 'TRAINER'
-              ? '/trainer/dashboard'
-              : '/trainee/dashboard';
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
 
-        navigate(dashboard, { replace: true });
+        if (!response.ok) {
+          throw new Error(`Unable to load current user: ${response.status}`);
+        }
+
+        const user = await response.json();
+
+        const cacheKey = keycloak.subject
+          ? `capacity-connect.current-user.${keycloak.subject}`
+          : 'capacity-connect.current-user';
+
+        const userJson = JSON.stringify(user);
+
+        sessionStorage.setItem(cacheKey, userJson);
+        localStorage.setItem(cacheKey, userJson);
+
+        const roles = user.roles?.length ? user.roles : [user.role];
+
+        const dashboard = roles.includes('ADMIN')
+          ? '/admin/dashboard'
+          : roles.includes('TRAINER')
+            ? '/trainer/dashboard'
+            : '/trainee/dashboard';
+
+        if (active) {
+          window.location.replace(dashboard);
+        }
       } catch (err) {
         console.error('Google authentication failed:', err);
-        navigate('/login', { replace: true });
+        sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+
+        if (active) {
+          navigate('/login', { replace: true });
+        }
       }
     };
 
     completeLogin();
+
+    return () => {
+      active = false;
+    };
   }, [navigate]);
 
   return (
