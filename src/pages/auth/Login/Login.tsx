@@ -46,6 +46,14 @@ const Login = () => {
       );
 
       const user = await getCurrentUser();
+      
+      if (user.role === 'ADMIN') {
+        window.location.replace('/admin/dashboard');
+      } else if (user.role === 'TRAINER') {
+        window.location.replace('/trainer/dashboard');
+      } else {
+        window.location.replace('/trainee/dashboard');
+      }
 
       const dashboard =
         user.role === 'ADMIN'
