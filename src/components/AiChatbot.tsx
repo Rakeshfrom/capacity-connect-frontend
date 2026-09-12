@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Box, Paper, TextField, IconButton, Typography, Chip, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import { chatWithAI, chatWithAIResourceLink, getMyStudyResource, apiFetchBlob } from '../services/api';
+import { chatWithAI, chatWithAIResourceLink, chatWithStoredResource, getMyStudyResource, apiFetchBlob } from '../services/api';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -70,19 +70,27 @@ export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps
       },
     ]);
     setInput('');
-    setResource(null);
+    if (!propResourceId) {
+      setResource(null);
+      setResourceUrl(null);
+    }
     setLoading(true);
 
     try {
-      const result = attachedUrl
+      const result = propResourceId
+        ? await chatWithStoredResource(message, propResourceId) as {
+            answer: string;
+            quickQueries: string[];
+          }
+        : attachedUrl
           ? await chatWithAIResourceLink(message, attachedUrl) as {
               answer: string;
               quickQueries: string[];
             }
           : await chatWithAI(message, attachedFile) as {
-        answer: string;
-        quickQueries: string[];
-      };
+              answer: string;
+              quickQueries: string[];
+            };
 
       setMessages(prev => [
         ...prev,

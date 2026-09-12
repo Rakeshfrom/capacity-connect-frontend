@@ -757,6 +757,26 @@ export async function getMyStudyResource(id: number) {
   return apiFetch(`/trainee/resources/${id}`);
 }
 
+export async function chatWithStoredResource(message: string, resourceId: number) {
+  if (keycloak.authenticated) await keycloak.updateToken(30);
+
+  const formData = new FormData();
+  formData.append('message', message);
+  formData.append('resourceId', String(resourceId));
+
+  const headers = new Headers();
+  if (keycloak.token) headers.set('Authorization', `Bearer ${keycloak.token}`);
+
+  const response = await fetch(`${API_BASE_URL}/ai/chat/resource-id`, {
+    method: 'POST',
+    body: formData,
+    headers,
+  });
+
+  if (!response.ok) throw new Error(`Stored resource AI failed: ${response.status}`);
+  return response.json();
+}
+
 export async function chatWithAIResourceLink(message: string, url: string) {
   if (keycloak.authenticated) {
     await keycloak.updateToken(30);
