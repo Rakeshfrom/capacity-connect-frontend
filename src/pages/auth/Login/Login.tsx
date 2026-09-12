@@ -12,7 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Google } from '@mui/icons-material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import keycloak from '../../../services/keycloak';
@@ -27,6 +27,33 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!keycloak.authenticated) return;
+
+    const handleGoogleCallback = async () => {
+      try {
+        setGoogleLoading(true);
+
+        const user = await getCurrentUser();
+
+        const dashboard =
+          user.role === 'ADMIN'
+            ? '/admin/dashboard'
+            : user.role === 'TRAINER'
+              ? '/trainer/dashboard'
+              : '/trainee/dashboard';
+
+        window.location.replace(dashboard);
+      } catch (err) {
+        console.error('Google sign-in callback failed:', err);
+        setGoogleLoading(false);
+        setError('Google sign-in could not be completed.');
+      }
+    };
+
+    handleGoogleCallback();
+  }, []);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -77,6 +104,8 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
+      sessionStorage.removeItem('capacity-connect.access-token');
+
       await keycloak.login({
         idpHint: 'google',
         redirectUri: `${window.location.origin}/login`,
