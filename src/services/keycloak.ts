@@ -6,4 +6,24 @@ const keycloak = new Keycloak({
   clientId: 'capacity-connect-frontend',
 });
 
+let keycloakInitPromise: Promise<boolean> | null = null;
+
+export const initKeycloak = () => {
+  if (!keycloakInitPromise) {
+    keycloakInitPromise = keycloak.init({
+      onLoad: 'check-sso',
+      pkceMethod: 'S256',
+      checkLoginIframe: false,
+      silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
+      silentCheckSsoFallback: false,
+      messageReceiveTimeout: 3000,
+    });
+  }
+
+  return keycloakInitPromise;
+};
+
+export const getKeycloakInitPromise = () =>
+  keycloakInitPromise ?? Promise.resolve(keycloak.authenticated ?? false);
+
 export default keycloak;

@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import keycloak from '../services/keycloak';
+import keycloak, {
+  getKeycloakInitPromise,
+} from '../services/keycloak';
 import { useAuth } from '../context/AuthContext';
 
 type Role = 'TRAINEE' | 'TRAINER' | 'ADMIN';
@@ -19,8 +21,33 @@ const getDashboard = (roles: Role[]) => {
 
 const AuthGuard = ({ children, role }: AuthGuardProps) => {
   const { user, loading } = useAuth();
-
   const customToken = sessionStorage.getItem('capacity-connect.access-token');
+  const [keycloakReady, setKeycloakReady] = useState(
+    Boolean(customToken) || Boolean(keycloak.authenticated),
+  );
+
+  useEffect(() => {
+    if (customToken || keycloak.authenticated) {
+      setKeycloakReady(true);
+      return;
+    }
+
+    let active = true;
+
+    getKeycloakInitPromise().finally(() => {
+      if (active) {
+        setKeycloakReady(true);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [customToken]);
+
+  if (!keycloakReady && !customToken) {
+    return null;
+  }
 
   if (!keycloak.authenticated && !customToken) {
     return <Navigate to="/login" replace />;

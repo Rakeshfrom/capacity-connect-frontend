@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import keycloak from '../../services/keycloak';
+import keycloak, {
+  getKeycloakInitPromise,
+} from '../../services/keycloak';
 import {
   cacheOptimisticUserFromAccessToken,
   getRolesFromAccessToken,
@@ -17,14 +19,17 @@ const GoogleCallback = () => {
 
     const completeLogin = async () => {
       try {
+        await getKeycloakInitPromise();
+
         if (!keycloak.authenticated || !keycloak.token) {
           throw new Error('Keycloak authentication was not completed.');
         }
 
         sessionStorage.setItem(ACCESS_TOKEN_KEY, keycloak.token);
-        cacheOptimisticUserFromAccessToken();
-
-        const roles = getRolesFromAccessToken();
+        const optimisticUser = cacheOptimisticUserFromAccessToken();
+        const roles = optimisticUser?.roles?.length
+          ? optimisticUser.roles
+          : getRolesFromAccessToken();
 
         const dashboard = roles.includes('ADMIN')
           ? '/admin/dashboard'
@@ -37,7 +42,6 @@ const GoogleCallback = () => {
         }
       } catch (err) {
         console.error('Google authentication failed:', err);
-
         sessionStorage.removeItem(ACCESS_TOKEN_KEY);
 
         if (active) {
