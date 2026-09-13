@@ -655,11 +655,7 @@ const Courses = () => {
           >
             <Button
               component={RouterLink}
-              to={
-                enrollment
-                  ? `/trainee/courses/${course.id}`
-                  : `/courses/${course.id}`
-              }
+              to={`/trainee/courses/${course.id}`}
               variant="contained"
               fullWidth
               endIcon={

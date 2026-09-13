@@ -34,7 +34,10 @@ import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import {
   getCourseById,
   getEnrollments,
+  enrollInCourse,
+  getAssessmentsByCourse,
   getMyCourseAssessments,
+  getCourseResources,
   getMyCourseResources,
   getCourseModules,
   downloadTrainerResource,
@@ -124,6 +127,7 @@ const CourseWorkspace = () => {
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
+  const [enrollingCourse, setEnrollingCourse] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -145,14 +149,8 @@ const CourseWorkspace = () => {
         const currentEnrollment = Array.isArray(enrollmentData)
           ? enrollmentData.find(
               (item: Enrollment) => Number(item.courseId) === id
-            )
+            ) || null
           : null;
-
-        if (!currentEnrollment) {
-          setError('You are not enrolled in this course.');
-          setLoading(false);
-          return;
-        }
 
         setCourse(courseData);
         setEnrollment(currentEnrollment);
@@ -160,14 +158,47 @@ const CourseWorkspace = () => {
         setContentLoading(true);
 
         const [
-          resourceData,
-          moduleData,
-          assessmentData,
-        ] = await Promise.all([
-          getMyCourseResources(id),
+          resourceResult,
+          moduleResult,
+          assessmentResult,
+        ] = await Promise.allSettled([
+          currentEnrollment
+            ? getMyCourseResources(id)
+            : getCourseResources(id),
           getCourseModules(id),
-          getMyCourseAssessments(id),
+          currentEnrollment
+            ? getMyCourseAssessments(id)
+            : getAssessmentsByCourse(id),
         ]);
+
+        const moduleData =
+          moduleResult.status === 'fulfilled'
+            ? moduleResult.value
+            : [];
+
+        const resourceData =
+          resourceResult.status === 'fulfilled'
+            ? resourceResult.value
+            : [];
+
+        const assessmentData =
+          assessmentResult.status === 'fulfilled'
+            ? assessmentResult.value
+            : [];
+
+        if (resourceResult.status === 'rejected') {
+          console.warn(
+            'Unable to load course resources:',
+            resourceResult.reason
+          );
+        }
+
+        if (assessmentResult.status === 'rejected') {
+          console.warn(
+            'Unable to load course assessments:',
+            assessmentResult.reason
+          );
+        }
 
         const activeModules = Array.isArray(moduleData)
           ? moduleData
@@ -323,6 +354,48 @@ const CourseWorkspace = () => {
       );
     } finally {
       setSavingProgress(false);
+    }
+  };
+
+  const handleEnroll = async () => {
+    if (enrollment || enrollingCourse) {
+      return;
+    }
+
+    try {
+      setError('');
+      setEnrollingCourse(true);
+
+      await enrollInCourse(id);
+
+      const updatedEnrollments = await getEnrollments();
+
+      const updatedEnrollment = Array.isArray(updatedEnrollments)
+        ? updatedEnrollments.find(
+            (item: Enrollment) => Number(item.courseId) === id
+          ) || null
+        : null;
+
+      if (!updatedEnrollment) {
+        throw new Error('Enrollment could not be confirmed.');
+      }
+
+      setEnrollment(updatedEnrollment);
+
+      setActiveTab('modules');
+
+      if (modules.length > 0) {
+        setSelectedModuleId(modules[0].id);
+      }
+    } catch (err) {
+      console.error('Course enrollment failed:', err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to enroll in this course. Please try again.'
+      );
+    } finally {
+      setEnrollingCourse(false);
     }
   };
 
@@ -487,7 +560,9 @@ const CourseWorkspace = () => {
                     label={
                       completed
                         ? 'Course completed'
-                        : 'Active enrolment'
+                        : enrollment
+                          ? 'Active enrolment'
+                          : 'Preview mode'
                     }
                     sx={{
                       color: '#fff',
@@ -561,13 +636,83 @@ const CourseWorkspace = () => {
                       },
                     }}
                   >
-                    {completed
-                      ? 'Review course'
-                      : 'Continue learning'}
+                    {enrollment
+                      ? completed
+                        ? 'Review course'
+                        : 'Continue learning'
+                      : 'Explore course'}
                   </Button>
                 </Stack>
               </Stack>
             </Box>
+
+            {!enrollment && (
+              <Paper
+                elevation={0}
+                sx={{
+                  mx: { xs: 2, md: 3 },
+                  mb: 0,
+                  p: { xs: 1.8, md: 2.2 },
+                  border: '1px solid #D8E7F0',
+                  borderRadius: 2,
+                  bgcolor: '#F7FBFE',
+                }}
+              >
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  sx={{
+                    justifyContent: 'space-between',
+                    alignItems: { sm: 'center' },
+                    gap: 1.5,
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      sx={{
+                        color: '#244A66',
+                        fontWeight: 800,
+                      }}
+                    >
+                      Course preview
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        mt: .3,
+                        color: '#718594',
+                        fontSize: '.79rem',
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      Explore the course overview and learning path.
+                      Enroll when you are ready to start learning and
+                      track your progress.
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    variant="contained"
+                    onClick={handleEnroll}
+                    disabled={enrollingCourse}
+                    startIcon={<SchoolOutlinedIcon />}
+                    sx={{
+                      flexShrink: 0,
+                      bgcolor: '#0B5A91',
+                      textTransform: 'none',
+                      fontWeight: 800,
+                      borderRadius: 1.5,
+                      '&:hover': {
+                        bgcolor: '#084873',
+                      },
+                    }}
+                  >
+                    {enrollingCourse
+                      ? 'Enrolling...'
+                      : 'Enroll in course'}
+                  </Button>
+                </Stack>
+              </Paper>
+            )}
 
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               <Stack spacing={1}>
@@ -1423,16 +1568,26 @@ const CourseWorkspace = () => {
                             <Button
                               variant="contained"
                               disabled={
-                                savingProgress ||
-                                completedModules >=
-                                  modules.findIndex(
-                                    (module) =>
-                                      module.id === selectedModule.id
-                                  ) + 1
+                                enrollment
+                                  ? savingProgress ||
+                                    completedModules >=
+                                      modules.findIndex(
+                                        (module) =>
+                                          module.id === selectedModule.id
+                                      ) + 1
+                                  : enrollingCourse
                               }
-                              onClick={handleModuleComplete}
+                              onClick={
+                                enrollment
+                                  ? handleModuleComplete
+                                  : handleEnroll
+                              }
                               startIcon={
-                                <CheckCircleOutlineRoundedIcon />
+                                enrollment ? (
+                                  <CheckCircleOutlineRoundedIcon />
+                                ) : (
+                                  <SchoolOutlinedIcon />
+                                )
                               }
                               sx={{
                                 flexShrink: 0,
@@ -1444,9 +1599,13 @@ const CourseWorkspace = () => {
                                 },
                               }}
                             >
-                              {savingProgress
-                                ? 'Saving...'
-                                : 'Mark module complete'}
+                              {enrollment
+                                ? savingProgress
+                                  ? 'Saving...'
+                                  : 'Mark module complete'
+                                : enrollingCourse
+                                  ? 'Enrolling...'
+                                  : 'Enroll to start'}
                             </Button>
                           </Stack>
                         </Paper>
@@ -1830,20 +1989,27 @@ const CourseWorkspace = () => {
                             startIcon={
                               <PlayCircleOutlineRoundedIcon />
                             }
+                            disabled={!enrollment}
                             sx={{
                               mt: .3,
                               textTransform:
                                 'none',
                               fontWeight: 750,
                               bgcolor:
-                                '#0B5A91',
+                                enrollment
+                                  ? '#0B5A91'
+                                  : '#B9C7D0',
                               '&:hover': {
                                 bgcolor:
-                                  '#084873',
+                                  enrollment
+                                    ? '#084873'
+                                    : '#B9C7D0',
                               },
                             }}
                           >
-                            Start Assessment
+                            {enrollment
+                              ? 'Start Assessment'
+                              : 'Enroll to access'}
                           </Button>
                         </Stack>
                       </Paper>
