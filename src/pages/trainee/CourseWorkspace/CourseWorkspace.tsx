@@ -22,7 +22,6 @@ import PlayCircleOutlineRoundedIcon from '@mui/icons-material/PlayCircleOutlineR
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
-import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
@@ -30,6 +29,12 @@ import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+
+import LessonViewer from '../../../components/LessonViewer/LessonViewer';
+import {
+  getResumeLearningPoint,
+  saveResumeLearningPoint,
+} from '../../../services/learningResume';
 
 import {
   getCourseById,
@@ -40,7 +45,6 @@ import {
   getCourseResources,
   getMyCourseResources,
   getCourseModules,
-  downloadTrainerResource,
   updateEnrollmentProgress,
 } from '../../../services/api';
 
@@ -123,6 +127,9 @@ const CourseWorkspace = () => {
   const [selectedModuleId, setSelectedModuleId] = useState<number | null>(
     null
   );
+
+  const [selectedResource, setSelectedResource] =
+    useState<Resource | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(false);
@@ -224,7 +231,21 @@ const CourseWorkspace = () => {
         setAssessments(activeAssessments);
 
         if (activeModules.length > 0) {
-          setSelectedModuleId(activeModules[0].id);
+          const resume = currentEnrollment
+            ? getResumeLearningPoint(id)
+            : null;
+
+          const resumeModule = resume
+            ? activeModules.find(
+                (module: CourseModule) =>
+                  module.id === resume.moduleId
+              )
+            : null;
+
+          setSelectedModuleId(
+            resumeModule?.id ||
+              activeModules[0].id
+          );
         }
       } catch (err) {
         console.error('Failed to load course workspace:', err);
@@ -280,29 +301,23 @@ const CourseWorkspace = () => {
     (progress / 100) * modules.length
   );
 
-  const handleDownload = async (
-    resourceId: number,
-    fileName?: string | null
-  ) => {
-    try {
-      setError('');
-
-      const blob = await downloadTrainerResource(resourceId);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-
-      anchor.href = url;
-      anchor.download = fileName || 'course-resource';
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Resource download failed:', err);
-      setError('Unable to download this resource.');
+  useEffect(() => {
+    if (!enrollment || !selectedModule) {
+      return;
     }
-  };
+
+    saveResumeLearningPoint({
+      courseId: course?.id || id,
+      courseTitle: course?.title || 'Course',
+      moduleId: selectedModule.id,
+      moduleTitle: selectedModule.title,
+    });
+  }, [
+    course,
+    enrollment,
+    id,
+    selectedModule,
+  ]);
 
   const handleModuleComplete = async () => {
     if (!selectedModule || !enrollment || modules.length === 0) {
@@ -438,7 +453,7 @@ const CourseWorkspace = () => {
     );
   }
 
-  if (error || !course || !enrollment) {
+  if (error || !course) {
     return (
       <Container maxWidth="lg" sx={{ py: 7 }}>
         <Alert severity="warning">
@@ -1502,21 +1517,19 @@ const CourseWorkspace = () => {
                                       size="small"
                                       variant="outlined"
                                       startIcon={
-                                        <DownloadOutlinedIcon />
+                                        <PlayCircleOutlineRoundedIcon />
                                       }
                                       onClick={() =>
-                                        handleDownload(
-                                          resource.id,
-                                          resource.fileName
-                                        )
+                                        setSelectedResource(resource)
                                       }
                                       sx={{
                                         textTransform: 'none',
                                         color: '#0B5A91',
                                         borderColor: '#B7CAD6',
+                                        fontWeight: 700,
                                       }}
                                     >
-                                      Download
+                                      Open resource
                                     </Button>
                                   </Stack>
                                 </Paper>
@@ -1777,13 +1790,10 @@ const CourseWorkspace = () => {
                           <Button
                             variant="outlined"
                             startIcon={
-                              <DownloadOutlinedIcon />
+                              <PlayCircleOutlineRoundedIcon />
                             }
                             onClick={() =>
-                              handleDownload(
-                                resource.id,
-                                resource.fileName
-                              )
+                              setSelectedResource(resource)
                             }
                             sx={{
                               flexShrink: 0,
@@ -1793,7 +1803,7 @@ const CourseWorkspace = () => {
                               borderColor: '#B7CAD6',
                             }}
                           >
-                            Download
+                            Open resource
                           </Button>
                         </Stack>
                       </Paper>
@@ -2107,6 +2117,20 @@ const CourseWorkspace = () => {
           </Typography>
         </Stack>
       </Container>
+
+      {selectedResource && course && (
+        <LessonViewer
+          resource={selectedResource}
+          courseId={course.id}
+          moduleId={
+            selectedResource.moduleId ??
+            selectedModuleId
+          }
+          onClose={() =>
+            setSelectedResource(null)
+          }
+        />
+      )}
     </Box>
   );
 };
