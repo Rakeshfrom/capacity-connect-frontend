@@ -19,8 +19,12 @@ import {
   SecurityOutlined,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
-import { getCurrentUser, registerAccount } from '../../../services/api';
-import { loginWithCredentials } from '../../../services/auth';
+import { registerAccount } from '../../../services/api';
+import {
+  cacheOptimisticUserFromAccessToken,
+  getRolesFromAccessToken,
+  loginWithCredentials,
+} from '../../../services/auth';
 import keycloak from '../../../services/keycloak';
 
 const passwordRule =
@@ -107,13 +111,21 @@ const Signup = () => {
 
       await loginWithCredentials(normalizedEmail, password);
 
-      const user = await getCurrentUser();
+      cacheOptimisticUserFromAccessToken();
 
       setSuccess(
         'Account created successfully. Redirecting to your dashboard...'
       );
 
-      redirectByRole(user);
+      const roles = getRolesFromAccessToken();
+      const role =
+        roles.includes('ADMIN')
+          ? 'ADMIN'
+          : roles.includes('TRAINER')
+            ? 'TRAINER'
+            : 'TRAINEE';
+
+      redirectByRole({ role });
     } catch (err) {
       setError(
         err instanceof Error

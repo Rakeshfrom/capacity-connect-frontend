@@ -7,7 +7,11 @@ import {
 } from 'react';
 import keycloak from '../services/keycloak';
 import { getCurrentUser } from '../services/api';
-import { getAccessToken } from '../services/auth';
+import {
+  getAccessToken,
+  getOptimisticUserFromAccessToken,
+  cacheOptimisticUserFromAccessToken,
+} from '../services/auth';
 
 export interface CurrentUser {
   id: number;
@@ -45,10 +49,28 @@ const readCachedUser = (): CurrentUser | null => {
     const value =
       sessionStorage.getItem(getCacheKey()) ||
       localStorage.getItem(getCacheKey());
+
     return value ? JSON.parse(value) : null;
   } catch {
     return null;
   }
+};
+
+const getInitialUser = (): CurrentUser | null => {
+  const cached = readCachedUser();
+
+  if (cached) {
+    return cached;
+  }
+
+  const optimistic = getOptimisticUserFromAccessToken();
+
+  if (optimistic) {
+    cacheOptimisticUserFromAccessToken();
+    return optimistic as CurrentUser;
+  }
+
+  return null;
 };
 
 const AuthContext = createContext<AuthContextValue>({
@@ -57,10 +79,8 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const cachedUser = readCachedUser();
-
-  const [user, setUser] = useState<CurrentUser | null>(cachedUser);
-  const [loading, setLoading] = useState(!cachedUser);
+  const [user, setUser] = useState<CurrentUser | null>(getInitialUser);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const customToken = getAccessToken();
@@ -78,20 +98,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!active) return;
 
         setUser(data);
-        sessionStorage.setItem(
-          getCacheKey(),
-          JSON.stringify(data),
-        );
-        localStorage.setItem(
-          getCacheKey(),
-          JSON.stringify(data),
-        );
+
+        const value = JSON.stringify(data);
+        sessionStorage.setItem(getCacheKey(), value);
+        localStorage.setItem(getCacheKey(), value);
       })
       .catch((error) => {
-        console.error('Failed to load current user:', error);
+        console.error('Failed to refresh current user:', error);
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       });
 
     return () => {

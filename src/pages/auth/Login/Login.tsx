@@ -20,8 +20,11 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import keycloak from '../../../services/keycloak';
-import { loginWithCredentials } from '../../../services/auth';
-import { getCurrentUser } from '../../../services/api';
+import {
+  cacheOptimisticUserFromAccessToken,
+  getRolesFromAccessToken,
+  loginWithCredentials,
+} from '../../../services/auth';
 
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
@@ -83,9 +86,17 @@ const Login = () => {
         password
       );
 
-      const user = await getCurrentUser();
+      cacheOptimisticUserFromAccessToken();
 
-      redirectByRole(user);
+      const roles = getRolesFromAccessToken();
+      const role =
+        roles.includes('ADMIN')
+          ? 'ADMIN'
+          : roles.includes('TRAINER')
+            ? 'TRAINER'
+            : 'TRAINEE';
+
+      redirectByRole({ role });
     } catch (err) {
       setError(
         err instanceof Error
