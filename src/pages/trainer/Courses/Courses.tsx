@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import {
   Alert,
   Box,
@@ -27,7 +30,7 @@ import {
   TextField,
   Tooltip,
   Typography,
-} from '@mui/material';
+  } from '@mui/material';
 
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
@@ -48,6 +51,7 @@ import {
   generateAiCourse,
   getTrainerAnalytics,
   getTrainerCourses,
+  getMyTrainerApplication
 } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -150,6 +154,26 @@ const TrainerCourses = () => {
   const { user, loading: authLoading } = useAuth();
 
   const [courses, setCourses] = useState<Course[]>([]);
+  const [trainerVerified, setTrainerVerified] = useState(false);
+  const [verificationLoading, setVerificationLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    getMyTrainerApplication()
+      .then((application: any) => {
+        if (active) setTrainerVerified(!application || application.status === 'APPROVED');
+      })
+      .catch(() => {
+        if (active) setTrainerVerified(false);
+      })
+      .finally(() => {
+        if (active) setVerificationLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const [analytics, setAnalytics] = useState<CourseAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -2504,7 +2528,8 @@ const TrainerCourses = () => {
                   <MenuItem value="DRAFT">
                     Draft
                   </MenuItem>
-                  <MenuItem value="PUBLISHED">
+                  <MenuItem value="PUBLISHED"
+                  disabled={verificationLoading || !trainerVerified}>
                     Published
                   </MenuItem>
                 </TextField>

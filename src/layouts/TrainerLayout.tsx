@@ -1,3 +1,4 @@
+import AiChatbot from "../components/AiChatbot";
 import {
   AppBar,
   Box,
@@ -299,7 +300,9 @@ const TrainerLayout = () => {
           <Outlet />
         </Box>
       </Box>
-    </Box>
+    
+      <AiChatbot />
+</Box>
   );
 };
 

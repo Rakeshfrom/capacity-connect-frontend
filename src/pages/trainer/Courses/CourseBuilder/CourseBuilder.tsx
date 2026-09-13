@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState } from 'react';
 import {
   Alert,
   Box,
@@ -15,7 +17,7 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material';
+  } from '@mui/material';
 
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
@@ -27,7 +29,8 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PublishOutlinedIcon from '@mui/icons-material/PublishOutlined';
 
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate,
+  useParams } from 'react-router-dom';
 
 import {
   createCourseModule,
@@ -36,6 +39,7 @@ import {
   getCourseModules,
   updateCourse,
   updateCourseModule,
+  getMyTrainerApplication
 } from '../../../../services/api';
 
 type Course = {
@@ -73,6 +77,26 @@ const CourseBuilder = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [trainerVerified, setTrainerVerified] = useState(false);
+  const [verificationLoading, setVerificationLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    getMyTrainerApplication()
+      .then((application: any) => {
+        if (active) setTrainerVerified(!application || application.status === 'APPROVED');
+      })
+      .catch(() => {
+        if (active) setTrainerVerified(false);
+      })
+      .finally(() => {
+        if (active) setVerificationLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
@@ -204,6 +228,12 @@ const CourseBuilder = () => {
   };
 
   const publishCourse = async () => {
+    if (!trainerVerified) {
+      setError('Trainer verification is required before publishing a course.');
+      return;
+    }
+
+
     if (!course) return;
 
     if (modules.length === 0) {
@@ -400,11 +430,9 @@ const CourseBuilder = () => {
                 startIcon={<PublishOutlinedIcon />}
                 variant="contained"
                 onClick={publishCourse}
-                disabled={
-                  saving ||
+                disabled={saving ||
                   publishing ||
-                  course.status === 'PUBLISHED'
-                }
+                  course.status === 'PUBLISHED' || verificationLoading || !trainerVerified}
                 sx={{
                   textTransform: 'none',
                   bgcolor: '#0B5A91',

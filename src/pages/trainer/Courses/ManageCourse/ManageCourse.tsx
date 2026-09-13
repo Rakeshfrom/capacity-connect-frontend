@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState } from 'react';
 import {
   Box,
   Button,
@@ -17,18 +19,20 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material';
+  } from '@mui/material';
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import PeopleOutlineOutlinedIcon from '@mui/icons-material/PeopleOutlineOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate,
+  useParams } from 'react-router-dom';
 import {
   getCourseById,
   getTrainerAnalytics,
   updateCourse,
+  getMyTrainerApplication
 } from '../../../../services/api';
 import { useAuth } from '../../../../context/AuthContext';
 
@@ -70,6 +74,26 @@ const ManageCourse = () => {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [trainerVerified, setTrainerVerified] = useState(false);
+  const [verificationLoading, setVerificationLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    getMyTrainerApplication()
+      .then((application: any) => {
+        if (active) setTrainerVerified(!application || application.status === 'APPROVED');
+      })
+      .catch(() => {
+        if (active) setTrainerVerified(false);
+      })
+      .finally(() => {
+        if (active) setVerificationLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const [error, setError] = useState('');
 
   const [form, setForm] = useState<CourseForm>({
@@ -170,7 +194,13 @@ const ManageCourse = () => {
     setError('');
 
     try {
-      const updatedCourse = await updateCourse(course.id, {
+      
+    if (form.status === 'PUBLISHED' && !trainerVerified) {
+      setError('Trainer verification is required before publishing a course.');
+      return;
+    }
+
+const updatedCourse = await updateCourse(course.id, {
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category.trim(),
@@ -643,7 +673,8 @@ const ManageCourse = () => {
               onChange={(e) => updateField('status', e.target.value)}
             >
               <MenuItem value="DRAFT">Draft</MenuItem>
-              <MenuItem value="PUBLISHED">Published</MenuItem>
+              <MenuItem value="PUBLISHED"
+                disabled={verificationLoading || !trainerVerified}>Published</MenuItem>
               <MenuItem value="ARCHIVED">Archived</MenuItem>
             </TextField>
 

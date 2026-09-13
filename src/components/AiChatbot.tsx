@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Paper, TextField, IconButton, Typography, Chip, CircularProgress } from '@mui/material';
+import { Box, Paper, TextField, IconButton, Typography, Chip, CircularProgress, Stack } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { chatWithAI, chatWithAIResourceLink, chatWithStoredResource, getMyStudyResource, apiFetchBlob } from '../services/api';
@@ -14,6 +14,14 @@ type Message = {
 type AiChatbotProps = {
   resourceId?: number;
 };
+
+
+const DEFAULT_QUICK_QUERIES = [
+  'Explain this topic in simple terms',
+  'Give me a quick revision summary',
+  'Create 5 practice questions',
+  'What should I learn next?',
+];
 
 export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -189,7 +197,27 @@ export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps
             📎
           </IconButton>
 
-          <TextField
+          
+          {messages.length === 0 && (
+            <Box sx={{ px: 1.5, pb: 1.5 }}>
+              <Typography variant="caption" sx={{ display: 'block', mb: 1, color: 'text.secondary', fontWeight: 700 }}>
+                Quick questions
+              </Typography>
+              <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+                {DEFAULT_QUICK_QUERIES.map((query) => (
+                  <Chip
+                    key={query}
+                    size="small"
+                    variant="outlined"
+                    label={query}
+                    onClick={() => sendMessage(query)}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
+<TextField
             fullWidth
             size="small"
             placeholder={resource ? 'Ask AI about this resource...' : 'Ask anything...'}
