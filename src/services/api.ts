@@ -950,3 +950,29 @@ export async function registerAccount(
 
   return response.json();
 }
+
+export async function getMyTrainerApplicationAssessment() {
+  return apiFetch('/trainer-applications/me/assessment');
+}
+
+export async function submitMyTrainerApplicationAssessment(
+  answers: Record<string, string>
+) {
+  return apiFetch('/trainer-applications/me/assessment', {
+    method: 'POST',
+    body: JSON.stringify({ answers }),
+  });
+}
+
+export async function assignTrainerApplicationAssessment(
+  applicationId: number,
+  data: { questionCount?: number; difficulty?: string } = {}
+) {
+  return apiFetch(`/admin/trainer-applications/${applicationId}/assessment`, {
+    method: 'POST',
+    body: JSON.stringify({
+      questionCount: data.questionCount ?? 10,
+      difficulty: data.difficulty ?? 'MEDIUM',
+    }),
+  });
+}
