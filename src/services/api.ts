@@ -51,6 +51,13 @@ export async function apiFetch(
     return response.json();
 }
 
+export async function requestPasswordReset(email: string) {
+  return apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
 export async function getCurrentUser() {
     return apiFetch('/auth/me');
 }
