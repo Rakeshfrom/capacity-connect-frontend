@@ -976,3 +976,25 @@ export async function assignTrainerApplicationAssessment(
     }),
   });
 }
+
+
+export async function chatWithAIActivity(message: string, activityContext: string) {
+  return apiFetch('/ai/chat', { method: 'POST', body: JSON.stringify({ message, resourceText: '', activityContext }) });
+}
+
+export async function chatWithAIResourceActivity(message: string, file: File, activityContext: string) {
+  const formData = new FormData();
+  formData.append('message', message); formData.append('file', file); formData.append('activityContext', activityContext);
+  return apiFetch('/ai/chat/resource', { method: 'POST', body: formData });
+}
+
+export async function chatWithAIResourceLinkActivity(message: string, url: string, activityContext: string) {
+  const form = new URLSearchParams({ message, url, activityContext });
+  return apiFetch('/ai/chat/link', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body: form });
+}
+
+export async function chatWithStoredResourceActivity(message: string, resourceId: number, activityContext: string) {
+  const formData = new FormData();
+  formData.append('message', message); formData.append('resourceId', String(resourceId)); formData.append('activityContext', activityContext);
+  return apiFetch('/ai/chat/resource-id', { method: 'POST', body: formData });
+}

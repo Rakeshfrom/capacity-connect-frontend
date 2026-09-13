@@ -18,9 +18,21 @@ import ArrowUpwardOutlinedIcon from '@mui/icons-material/ArrowUpwardOutlined';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
 import {
-  chatWithAI,
-  chatWithAIResourceLink,
-  chatWithStoredResource,
+  chatWithAIActivity,
+  chatWithAIResourceActivity,
+  chatWithAIResourceLinkActivity,
+  chatWithStoredResourceActivity,
+  getCurrentUser,
+  getEnrollments,
+  getAttemptsByTrainee,
+  getMyCertificates,
+  getMyFeedback,
+  getMyQuestionnaireResponses,
+  getTrainerCourses,
+  getTrainerTrainees,
+  getTrainerAnalytics,
+  getTrainerQuestionnaires,
+  getTrainerProfile,
   getMyStudyResource,
   apiFetchBlob,
 } from '../services/api';
@@ -36,20 +48,6 @@ type AiChatbotProps = {
   resourceId?: number;
 };
 
-const TRAINEE_QUERIES = [
-  'Explain my current topic in simple terms',
-  'Create 5 practice questions for me',
-  'Give me a quick revision plan',
-  'What should I learn next?',
-];
-
-const TRAINER_QUERIES = [
-  'Help me analyse trainee performance',
-  'Create a 10-question course assessment',
-  'Suggest activities for this course',
-  'Help me plan next week’s training',
-];
-
 export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps) {
   const isAssistantPage = window.location.pathname.endsWith('/ai');
   const isTrainer = window.location.pathname.startsWith('/trainer/');
@@ -57,15 +55,103 @@ export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps
   const subtitle = isTrainer
     ? 'Your coaching copilot for course design, assessments and learner support.'
     : 'Your learning copilot for courses, revision, practice and next steps.';
-  const quickQueries = isTrainer ? TRAINER_QUERIES : TRAINEE_QUERIES;
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [resource, setResource] = useState<File | null>(null);
   const [resourceUrl, setResourceUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [activityContext, setActivityContext] = useState('');
+  const [quickQueries, setQuickQueries] = useState<string[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadActivity = async () => {
+      setActivityLoading(true);
+
+      const user = await getCurrentUser();
+      const userId = Number(user?.id);
+
+      const results = isTrainer
+        ? await Promise.allSettled([
+            getTrainerCourses(userId),
+            getTrainerTrainees(userId),
+            getTrainerAnalytics(userId),
+            getTrainerQuestionnaires(userId),
+            getTrainerProfile(userId),
+          ])
+        : await Promise.allSettled([
+            getEnrollments(),
+            getAttemptsByTrainee(),
+            getMyCertificates(),
+            getMyFeedback(),
+            getMyQuestionnaireResponses(),
+          ]);
+
+      const value = (item: PromiseSettledResult<unknown>) =>
+        item.status === 'fulfilled' ? item.value : null;
+
+      const context = JSON.stringify({
+        role: isTrainer ? 'TRAINER' : 'TRAINEE',
+        user: {
+          id: user?.id,
+          name: user?.name || user?.username,
+          department: user?.department,
+          designation: user?.designation,
+        },
+        recentActivity: isTrainer
+          ? {
+              courses: value(results[0]),
+              trainees: value(results[1]),
+              analytics: value(results[2]),
+              questionnaires: value(results[3]),
+              profile: value(results[4]),
+            }
+          : {
+              enrollments: value(results[0]),
+              assessmentAttempts: value(results[1]),
+              certificates: value(results[2]),
+              feedback: value(results[3]),
+              questionnaireResponses: value(results[4]),
+            },
+      });
+
+      const trimmed = context.slice(0, 26000);
+
+      if (!active) return;
+      setActivityContext(trimmed);
+
+      try {
+        const result = await chatWithAIActivity(
+          isTrainer
+            ? 'Using only my recent LMS activity, generate exactly four useful questions I should ask next. Make them specific to my actual courses, trainees, assessments, analytics, questionnaires or training work. Do not invent facts.'
+            : 'Using only my recent LMS activity, generate exactly four useful questions I should ask next. Make them specific to my actual courses, assessment attempts, progress, certificates, feedback or learning. Do not invent facts.',
+          trimmed
+        ) as { quickQueries?: string[] };
+
+        if (active) {
+          setQuickQueries(
+            Array.isArray(result.quickQueries)
+              ? result.quickQueries.filter(Boolean).slice(0, 4)
+              : []
+          );
+        }
+      } catch {
+        if (active) setQuickQueries([]);
+      } finally {
+        if (active) setActivityLoading(false);
+      }
+    };
+
+    loadActivity();
+
+    return () => {
+      active = false;
+    };
+  }, [isTrainer]);
 
   useEffect(() => {
     const resourceId =
@@ -103,7 +189,7 @@ export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps
 
   const sendMessage = async (text = input) => {
     const message = text.trim();
-    if (!message || loading) return;
+    if (!message || loading || !activityContext) return;
 
     const attachedFile = resource;
     const attachedUrl = resourceUrl;
@@ -126,16 +212,16 @@ export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps
 
     try {
       const result = propResourceId
-        ? await chatWithStoredResource(message, propResourceId) as {
+        ? await chatWithStoredResourceActivity(message, propResourceId, activityContext) as {
             answer: string;
             quickQueries: string[];
           }
         : attachedUrl
-          ? await chatWithAIResourceLink(message, attachedUrl) as {
+          ? await chatWithAIResourceLinkActivity(message, attachedUrl, activityContext) as {
               answer: string;
               quickQueries: string[];
             }
-          : await chatWithAI(message, attachedFile) as {
+          : await chatWithAIResourceActivity(message, attachedFile!, activityContext) as {
               answer: string;
               quickQueries: string[];
             };
@@ -242,20 +328,34 @@ export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps
               </Box>
 
               <Typography sx={{ mt: 3, mb: 1.25, fontWeight: 750 }}>
-                Suggested questions
+                Based on your recent activity
               </Typography>
-              <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 1 }}>
-                {quickQueries.map((query) => (
-                  <Chip
-                    key={query}
-                    label={query}
-                    clickable
-                    variant="outlined"
-                    onClick={() => sendMessage(query)}
-                    sx={{ borderRadius: 2, py: 0.35, fontWeight: 600 }}
-                  />
-                ))}
-              </Stack>
+
+              {activityLoading ? (
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <CircularProgress size={18} />
+                  <Typography variant="body2" color="text.secondary">
+                    Building personalised suggestions...
+                  </Typography>
+                </Stack>
+              ) : quickQueries.length > 0 ? (
+                <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>
+                  {quickQueries.map((query) => (
+                    <Chip
+                      key={query}
+                      label={query}
+                      clickable
+                      variant="outlined"
+                      onClick={() => sendMessage(query)}
+                      sx={{ borderRadius: 2, py: 0.35, fontWeight: 600 }}
+                    />
+                  ))}
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Ask your first question and Capacity AI will personalise the next suggestions.
+                </Typography>
+                )}
 
               {resource && (
                 <Alert severity="info" sx={{ mt: 3 }}>
