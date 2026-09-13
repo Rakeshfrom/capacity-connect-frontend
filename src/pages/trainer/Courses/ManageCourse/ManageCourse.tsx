@@ -86,18 +86,33 @@ const ManageCourse = () => {
 
     const loadCourse = async () => {
       try {
-        const [courseData, analyticsData] = await Promise.all([
-          getCourseById(Number(courseId)),
-          getTrainerAnalytics(user.id),
-        ]);
+        const courseData = await getCourseById(
+          Number(courseId)
+        );
 
         setCourse(courseData);
 
-        const courseAnalytics = analyticsData.courses?.find(
-          (item: CourseAnalytics) => item.courseId === Number(courseId)
-        );
+        try {
+          const analyticsData =
+            await getTrainerAnalytics(user.id);
 
-        setAnalytics(courseAnalytics ?? null);
+          const courseAnalytics =
+            analyticsData.courses?.find(
+              (item: CourseAnalytics) =>
+                Number(item.courseId) === Number(courseId)
+            );
+
+          setAnalytics(
+            courseAnalytics ?? null
+          );
+        } catch (analyticsError) {
+          console.error(
+            'Failed to load course analytics:',
+            analyticsError
+          );
+
+          setAnalytics(null);
+        }
       } catch (error) {
         console.error('Failed to load course:', error);
         setError('Unable to load course details.');
@@ -520,8 +535,25 @@ const ManageCourse = () => {
                     fullWidth
                     startIcon={item.icon}
                     onClick={() => {
-                      if (item.label === 'Learning Resources') {
-                        navigate(`/trainer/courses/${course.id}/builder`);
+                      if (
+                        item.label ===
+                        'Learning Resources' ||
+                        item.label ===
+                        'Assessments'
+                      ) {
+                        navigate(
+                          `/trainer/courses/${course.id}/builder`
+                        );
+                        return;
+                      }
+
+                      if (
+                        item.label ===
+                        'Trainee Participation'
+                      ) {
+                        navigate(
+                          `/trainer/trainees?courseId=${course.id}`
+                        );
                       }
                     }}
                     sx={{

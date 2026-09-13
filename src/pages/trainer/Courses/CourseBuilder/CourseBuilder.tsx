@@ -34,6 +34,7 @@ import {
   deleteCourseModule,
   getCourseById,
   getCourseModules,
+  updateCourse,
   updateCourseModule,
 } from '../../../../services/api';
 
@@ -71,6 +72,8 @@ const CourseBuilder = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
   const [moduleDialog, setModuleDialog] = useState(false);
@@ -157,6 +160,91 @@ const CourseBuilder = () => {
       setError('Unable to save the module.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveCourseChanges = async () => {
+    if (!course) return;
+
+    try {
+      setSaving(true);
+      setError('');
+
+      const updated = await updateCourse(course.id, {
+        title: course.title,
+        description: course.description ?? '',
+        category: course.category ?? '',
+        durationHours: course.durationHours ?? 0,
+        level: course.level ?? 'BEGINNER',
+        status: course.status ?? 'DRAFT',
+      });
+
+      setCourse(updated);
+      setSaved(true);
+
+      window.setTimeout(() => {
+        setSaved(false);
+      }, 1800);
+    } catch (err) {
+      console.error(err);
+      setError('Unable to save course changes.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const previewCourse = () => {
+    if (!course) return;
+
+    window.open(
+      `${window.location.origin}/courses/${course.id}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  const publishCourse = async () => {
+    if (!course) return;
+
+    if (modules.length === 0) {
+      setError(
+        'Add at least one module before publishing this course.'
+      );
+      return;
+    }
+
+    if (
+      !window.confirm(
+        'Publish this course? It will become available to trainees.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setPublishing(true);
+      setError('');
+
+      const updated = await updateCourse(
+        course.id,
+        {
+          title: course.title,
+          description: course.description ?? '',
+          category: course.category ?? '',
+          durationHours: course.durationHours ?? 0,
+          level: course.level ?? 'BEGINNER',
+          status: 'PUBLISHED',
+        }
+      );
+
+      setCourse(updated);
+    } catch (err) {
+      console.error(err);
+      setError(
+        'Unable to publish this course. Please try again.'
+      );
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -283,18 +371,22 @@ const CourseBuilder = () => {
               <Button
                 startIcon={<SaveOutlinedIcon />}
                 variant="outlined"
+                onClick={saveCourseChanges}
+                disabled={saving || publishing}
                 sx={{
                   textTransform: 'none',
                   borderColor: '#BCD2E2',
                   color: '#0B5A91',
                 }}
               >
-                Save
+                {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
               </Button>
 
               <Button
                 startIcon={<VisibilityOutlinedIcon />}
                 variant="outlined"
+                onClick={previewCourse}
+                disabled={saving || publishing}
                 sx={{
                   textTransform: 'none',
                   borderColor: '#BCD2E2',
@@ -307,13 +399,23 @@ const CourseBuilder = () => {
               <Button
                 startIcon={<PublishOutlinedIcon />}
                 variant="contained"
+                onClick={publishCourse}
+                disabled={
+                  saving ||
+                  publishing ||
+                  course.status === 'PUBLISHED'
+                }
                 sx={{
                   textTransform: 'none',
                   bgcolor: '#0B5A91',
                   '&:hover': { bgcolor: '#084873' },
                 }}
               >
-                Publish
+                {publishing
+                  ? 'Publishing...'
+                  : course.status === 'PUBLISHED'
+                    ? 'Published'
+                    : 'Publish'}
               </Button>
             </Stack>
           </Stack>
@@ -640,41 +742,6 @@ const CourseBuilder = () => {
                           </CardContent>
                         </Card>
 
-                <Card
-                  elevation={0}
-                  sx={{
-                    border: '1px dashed #BFD3E0',
-                    borderRadius: 2,
-                    bgcolor: '#FBFDFF',
-                  }}
-                >
-                  <CardContent
-                    sx={{
-                      p: 3,
-                      textAlign: 'center',
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        color: '#173F60',
-                        fontWeight: 800,
-                      }}
-                    >
-                      No learning content yet
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        color: '#718594',
-                        mt: 0.6,
-                      }}
-                    >
-                      Add a document, recorded video, link,
-                      presentation, assessment or another resource
-                      to this module.
-                    </Typography>
-                  </CardContent>
-                </Card>
               </Stack>
             ) : (
               <Card
