@@ -153,9 +153,11 @@ const TrainerCourses = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
 
-  const [courses, setCourses] = useState<Course[]>([]);
   const [trainerVerified, setTrainerVerified] = useState(false);
   const [verificationLoading, setVerificationLoading] = useState(true);
+  void trainerVerified;
+  void verificationLoading;
+  const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -558,6 +560,10 @@ const TrainerCourses = () => {
       setForm(initialForm);
       setAiModules([]);
       await loadCourses(false);
+
+      if (courseId) {
+        navigate(`/trainer/courses/${courseId}/builder`);
+      }
     } catch (err) {
       console.error(
         'Failed to create course:',
@@ -2527,10 +2533,6 @@ const TrainerCourses = () => {
                 >
                   <MenuItem value="DRAFT">
                     Draft
-                  </MenuItem>
-                  <MenuItem value="PUBLISHED"
-                  disabled={verificationLoading || !trainerVerified}>
-                    Published
                   </MenuItem>
                 </TextField>
               </Grid>

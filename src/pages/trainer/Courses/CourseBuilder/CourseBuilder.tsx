@@ -685,6 +685,31 @@ const CourseBuilder = () => {
                   }}
                 >
                   <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+                    <Typography sx={{ color: '#173F60', fontWeight: 800, fontSize: '1.1rem', mb: 0.5 }}>
+                      Course overview
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Review and refine the course before publishing.
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      <TextField label="Course title" value={course.title} onChange={(e) => setCourse({ ...course, title: e.target.value })} fullWidth />
+                      <TextField label="Description" value={course.description ?? ''} onChange={(e) => setCourse({ ...course, description: e.target.value })} multiline minRows={3} fullWidth />
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                        <TextField label="Category" value={course.category ?? ''} onChange={(e) => setCourse({ ...course, category: e.target.value })} fullWidth />
+                        <TextField label="Duration (hours)" type="number" value={course.durationHours ?? 0} onChange={(e) => setCourse({ ...course, durationHours: Number(e.target.value) || 0 })} fullWidth />
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  elevation={0}
+                  sx={{
+                    border: '1px solid #DCE8F0',
+                    borderRadius: 2,
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
                     <Stack
                       direction={{ xs: 'column', sm: 'row' }}
                       sx={{

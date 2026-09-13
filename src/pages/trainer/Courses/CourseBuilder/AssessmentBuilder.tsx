@@ -500,13 +500,6 @@ const AssessmentBuilder = ({
             </Typography>
           </Box>
 
-          {mode === 'AI' && (
-            <Alert severity="info">
-              AI generation is reserved for the next integration step.
-              No generated questions are inserted automatically.
-            </Alert>
-          )}
-
           {loadingQuestions ? (
             <Box
               sx={{
@@ -686,42 +679,20 @@ const AssessmentBuilder = ({
                                 }}
                               />
 
-                              <Typography
-                                sx={{
-                                  mt: 1,
-                                  color: '#718594',
-                                  fontSize: '0.85rem',
-                                }}
-                              >
-                                A. {question.optionA}
-                              </Typography>
-
-                              <Typography
-                                sx={{
-                                  color: '#718594',
-                                  fontSize: '0.85rem',
-                                }}
-                              >
-                                B. {question.optionB}
-                              </Typography>
-
-                              <Typography
-                                sx={{
-                                  color: '#718594',
-                                  fontSize: '0.85rem',
-                                }}
-                              >
-                                C. {question.optionC}
-                              </Typography>
-
-                              <Typography
-                                sx={{
-                                  color: '#718594',
-                                  fontSize: '0.85rem',
-                                }}
-                              >
-                                D. {question.optionD}
-                              </Typography>
+                              <Stack spacing={1} sx={{ mt: 1.25 }}>
+                                {([
+                                  ['optionA', 'Option A'],
+                                  ['optionB', 'Option B'],
+                                  ['optionC', 'Option C'],
+                                  ['optionD', 'Option D'],
+                                ] as const).map(([field, label]) => (
+                                  <TextField key={field} fullWidth size="small" label={label} value={question[field]} onChange={(e) => {
+                                    const next = [...questions];
+                                    next[index] = { ...next[index], [field]: e.target.value };
+                                    setQuestions(next);
+                                  }} />
+                                ))}
+                              </Stack>
 
                               <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
                                 <TextField
@@ -801,6 +772,10 @@ const AssessmentBuilder = ({
           )}
 
           <Divider />
+
+          {mode === 'AI' && questions.some((q) => q.id < 0) && (
+            <Alert severity="info">Review and edit the generated questions before saving them.</Alert>
+          )}
 
           <Stack
             direction="row"

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import DialogActions from '@mui/material/DialogActions';
+import CircularProgress from '@mui/material/CircularProgress';
 import {
   Alert,
   Box,
@@ -19,12 +21,14 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 
 import {
   deleteTrainerResource,
   getAssessmentsByCourse,
   getCourseResources,
   uploadCourseResource,
+  chatWithAIActivity,
 } from '../../../../services/api';
 import AssessmentBuilder from './AssessmentBuilder';
 import { useAuth } from '../../../../context/AuthContext';
@@ -58,6 +62,11 @@ const ModuleContentPanel: React.FC<Props> = ({ courseId, moduleId }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiInstructions, setAiInstructions] = useState('');
+  const [aiDraft, setAiDraft] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
   const [resourceType, setResourceType] = useState('STUDY_MATERIAL');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -156,6 +165,43 @@ const ModuleContentPanel: React.FC<Props> = ({ courseId, moduleId }) => {
     }
   };
 
+  const generateLearningDraft = async () => {
+    if (!aiTopic.trim()) {
+      setMessage('Enter a topic before generating content.');
+      return;
+    }
+    try {
+      setAiGenerating(true);
+      setMessage('');
+      const result = await chatWithAIActivity(
+        `Create learner-ready training content for the module topic "${aiTopic.trim()}". ${aiInstructions.trim() || 'Use clear headings, concise explanations, practical examples, key takeaways and a short recap.'} Return only the content draft.`,
+        JSON.stringify({ role: 'TRAINER', courseId, moduleId, task: 'module-learning-content', topic: aiTopic.trim(), instructions: aiInstructions.trim() })
+      ) as { answer?: string };
+      setAiDraft(String(result?.answer || ''));
+    } catch (error) {
+      console.error(error);
+      setMessage('Unable to generate AI learning content.');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const saveAiDraft = async () => {
+    if (!user || !aiDraft.trim()) return;
+    try {
+      setLoading(true);
+      const safeName = aiTopic.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'ai-learning-content';
+      const file = new File([new Blob([aiDraft], { type: 'text/plain' })], `${safeName}.txt`, { type: 'text/plain' });
+      await uploadCourseResource({ trainerId: Number(user.id), courseId, moduleId, title: aiTopic.trim(), description: 'AI-generated learning content reviewed by trainer', resourceType: 'STUDY_MATERIAL', file });
+      setAiOpen(false); setAiTopic(''); setAiInstructions(''); setAiDraft(''); await loadContent();
+    } catch (error) {
+      console.error(error);
+      setMessage('Unable to save AI learning content.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resourceLabel = (type: string) => {
     if (type === 'LECTURE') return 'Recorded Lecture';
     if (type === 'PRESENTATION') return 'Presentation';
@@ -211,6 +257,16 @@ const ModuleContentPanel: React.FC<Props> = ({ courseId, moduleId }) => {
 
             <MenuItem onClick={() => openUpload('PRESENTATION')}>
               Presentation
+            </MenuItem>
+
+            <MenuItem
+              onClick={() => {
+                closeMenu();
+                setAiOpen(true);
+              }}
+            >
+              <AutoAwesomeOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+              Generate with AI
             </MenuItem>
 
             <MenuItem
@@ -371,6 +427,25 @@ const ModuleContentPanel: React.FC<Props> = ({ courseId, moduleId }) => {
             </Button>
           </Stack>
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={aiOpen} onClose={() => !aiGenerating && !loading && setAiOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle sx={{ fontWeight: 800, color: '#173F60' }}>Generate learning content with AI</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">Generate a first draft, review it, edit it, then save it to this module.</Typography>
+            <TextField fullWidth label="Topic" value={aiTopic} onChange={(e) => setAiTopic(e.target.value)} />
+            <TextField fullWidth multiline minRows={3} label="Learning objective / instructions" value={aiInstructions} onChange={(e) => setAiInstructions(e.target.value)} />
+            <Button variant="contained" startIcon={aiGenerating ? <CircularProgress size={18} color="inherit" /> : <AutoAwesomeOutlinedIcon />} onClick={generateLearningDraft} disabled={aiGenerating || !aiTopic.trim()} sx={{ textTransform: 'none', alignSelf: 'flex-start' }}>
+              {aiGenerating ? 'Generating...' : 'Generate Draft'}
+            </Button>
+            {aiDraft && <TextField fullWidth multiline minRows={15} label="AI draft · editable" value={aiDraft} onChange={(e) => setAiDraft(e.target.value)} />}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setAiOpen(false)} disabled={aiGenerating || loading} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={saveAiDraft} disabled={!aiDraft.trim() || aiGenerating || loading} sx={{ textTransform: 'none' }}>{loading ? 'Saving...' : 'Save Content'}</Button>
+        </DialogActions>
       </Dialog>
 
       <Dialog
