@@ -19,7 +19,7 @@ import {
   SecurityOutlined,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
-import keycloak from '../../../services/keycloak';
+import keycloak, { initKeycloak } from '../../../services/keycloak';
 import {
   cacheOptimisticUserFromAccessToken,
   getRolesFromAccessToken,
@@ -114,6 +114,7 @@ const Login = () => {
       setGoogleLoading(true);
       sessionStorage.removeItem('capacity-connect.access-token');
 
+      await initKeycloak();
       await keycloak.login({
         idpHint: 'google',
         redirectUri: `${window.location.origin}/auth/callback`,

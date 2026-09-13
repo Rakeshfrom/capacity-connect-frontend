@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import keycloak from '../services/keycloak';
+import keycloak, { initKeycloak } from '../services/keycloak';
 import { getCurrentUser } from '../services/api';
 import {
   getAccessToken,
@@ -73,6 +73,12 @@ const getInitialUser = (): CurrentUser | null => {
   return null;
 };
 
+const requiresKeycloak = (pathname: string) =>
+  pathname === '/auth/callback' ||
+  pathname.startsWith('/trainee/') ||
+  pathname.startsWith('/trainer/') ||
+  pathname.startsWith('/admin/');
+
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
@@ -80,37 +86,54 @@ const AuthContext = createContext<AuthContextValue>({
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<CurrentUser | null>(getInitialUser);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const customToken = getAccessToken();
-
-    if (!keycloak.authenticated && !customToken) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     let active = true;
 
-    getCurrentUser()
-      .then((data) => {
+    const bootstrapAuth = async () => {
+      try {
+        const customToken = getAccessToken();
+
+        if (!customToken && requiresKeycloak(window.location.pathname)) {
+          try {
+            await initKeycloak();
+          } catch (error) {
+            console.error('Keycloak initialization failed:', error);
+          }
+        }
+
         if (!active) return;
 
-        setUser(data);
+        const hasAuthentication = Boolean(
+          getAccessToken() || keycloak.authenticated,
+        );
 
-        const value = JSON.stringify(data);
-        sessionStorage.setItem(getCacheKey(), value);
-        localStorage.setItem(getCacheKey(), value);
-      })
-      .catch((error) => {
-        console.error('Failed to refresh current user:', error);
-      })
-      .finally(() => {
+        if (!hasAuthentication) {
+          setUser(null);
+          return;
+        }
+
+        try {
+          const data = await getCurrentUser();
+          if (!active) return;
+
+          setUser(data);
+
+          const value = JSON.stringify(data);
+          sessionStorage.setItem(getCacheKey(), value);
+          localStorage.setItem(getCacheKey(), value);
+        } catch (error) {
+          console.error('Failed to refresh current user:', error);
+        }
+      } finally {
         if (active) {
           setLoading(false);
         }
-      });
+      }
+    };
+
+    bootstrapAuth();
 
     return () => {
       active = false;
