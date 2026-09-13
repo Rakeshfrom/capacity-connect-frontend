@@ -43,6 +43,9 @@ import {
   getCurrentUser,
   getEnrollments,
 } from '../../../services/api';
+import {
+  getLatestResumeLearningPoint,
+} from '../../../services/learningResume';
 
 type Course = {
   id: number;
@@ -92,6 +95,8 @@ const Courses = () => {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [user, setUser] = useState<UserProfile>({});
   const [savedCourses, setSavedCourses] = useState<number[]>([]);
+  const [resumePoint, setResumePoint] =
+    useState<ReturnType<typeof getLatestResumeLearningPoint>>(null);
 
   const [tab, setTab] = useState<TabKey>('my');
   const [search, setSearch] = useState('');
@@ -159,6 +164,8 @@ const Courses = () => {
         } catch {
           setSavedCourses([]);
         }
+        
+        setResumePoint(getLatestResumeLearningPoint());
       } catch (err) {
         console.error('Failed to load trainee course catalogue:', err);
 
@@ -203,6 +210,16 @@ const Courses = () => {
         ),
     [courses, enrollments]
   );
+
+  const resumeCourse = useMemo(() => {
+    if (!resumePoint) return null;
+
+    return (
+      myCourses.find(
+        (item) => item.course.id === resumePoint.courseId
+      ) || null
+    );
+  }, [myCourses, resumePoint]);
 
   const departments = useMemo(
     () =>
@@ -878,6 +895,110 @@ const Courses = () => {
               </Paper>
             ))}
           </Box>
+
+          {resumeCourse && resumePoint && (
+            <Paper
+              elevation={0}
+              sx={{
+                border: '1px solid #CFE0EA',
+                borderRadius: 2.2,
+                overflow: 'hidden',
+                bgcolor: '#F8FCFE',
+              }}
+            >
+              <Box
+                sx={{
+                  px: { xs: 2, md: 2.6 },
+                  py: { xs: 1.9, md: 2.2 },
+                }}
+              >
+                <Stack
+                  direction={{ xs: 'column', md: 'row' }}
+                  spacing={2}
+                  sx={{
+                    justifyContent: 'space-between',
+                    alignItems: { md: 'center' },
+                  }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: 'center' }}
+                    >
+                      <PlayCircleOutlineRoundedIcon
+                        sx={{
+                          color: '#0B5A91',
+                          fontSize: 22,
+                        }}
+                      />
+
+                      <Typography
+                        sx={{
+                          color: '#173F60',
+                          fontWeight: 800,
+                          fontSize: '1.02rem',
+                        }}
+                      >
+                        Resume learning
+                      </Typography>
+                    </Stack>
+
+                    <Typography
+                      sx={{
+                        mt: .55,
+                        color: '#244A66',
+                        fontWeight: 750,
+                      }}
+                    >
+                      {resumeCourse.course.title}
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        mt: .2,
+                        color: '#718594',
+                        fontSize: '.8rem',
+                      }}
+                    >
+                      Continue from: {resumePoint.moduleTitle}
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        mt: .45,
+                        color: '#8A99A3',
+                        fontSize: '.7rem',
+                      }}
+                    >
+                      Your last learning position is saved automatically on
+                      this device.
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    component={RouterLink}
+                    to={`/trainee/courses/${resumeCourse.course.id}`}
+                    variant="contained"
+                    endIcon={<ArrowForwardRoundedIcon />}
+                    sx={{
+                      flexShrink: 0,
+                      textTransform: 'none',
+                      fontWeight: 800,
+                      bgcolor: '#0B5A91',
+                      borderRadius: 1.5,
+                      px: 2.2,
+                      '&:hover': {
+                        bgcolor: '#084873',
+                      },
+                    }}
+                  >
+                    Continue
+                  </Button>
+                </Stack>
+              </Box>
+            </Paper>
+          )}
 
           {tab === 'recommended' && (
             <Paper
