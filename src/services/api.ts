@@ -1,54 +1,97 @@
-import keycloak from './keycloak';
+import keycloak, {
+  getKeycloakInitPromise,
+} from './keycloak';
 
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || ''}/api`;
+const ACCESS_TOKEN_KEY = 'capacity-connect.access-token';
+
+const getStoredToken = () =>
+  sessionStorage.getItem(ACCESS_TOKEN_KEY) || keycloak.token || null;
+
+const refreshKeycloakToken = async () => {
+  if (!keycloak.authenticated) {
+    return getStoredToken();
+  }
+
+  try {
+    await keycloak.updateToken(30);
+    return keycloak.token || getStoredToken();
+  } catch {
+    return getStoredToken();
+  }
+};
+
+const waitForAuthentication = async () => {
+  let accessToken = getStoredToken();
+
+  if (accessToken) {
+    return accessToken;
+  }
+
+  try {
+    await getKeycloakInitPromise();
+  } catch {
+    return null;
+  }
+
+  accessToken = await refreshKeycloakToken();
+  return accessToken;
+};
+
+const createHeaders = (options: RequestInit, accessToken: string | null) => {
+  const headers = new Headers(options.headers);
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  if (
+    options.body &&
+    !(options.body instanceof FormData) &&
+    !headers.has('Content-Type')
+  ) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return headers;
+};
+
+const sendApiRequest = async (
+  path: string,
+  options: RequestInit,
+  accessToken: string | null,
+) =>
+  fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: createHeaders(options, accessToken),
+  });
 
 export async function apiFetch(
-    path: string,
-    options: RequestInit = {}
+  path: string,
+  options: RequestInit = {}
 ) {
-    if (keycloak.authenticated) {
-        try {
-            await keycloak.updateToken(30);
-        } catch {
-            throw new Error('Authentication required');
-        }
-    }
+  let accessToken = await refreshKeycloakToken();
 
-    const headers = new Headers(options.headers);
-    const accessToken =
-        sessionStorage.getItem('capacity-connect.access-token') ||
-        keycloak.token;
+  let response = await sendApiRequest(path, options, accessToken);
 
-    if (accessToken) {
-        headers.set('Authorization', `Bearer ${accessToken}`);
-    }
+  if (response.status === 401 && !sessionStorage.getItem(ACCESS_TOKEN_KEY)) {
+    accessToken = await waitForAuthentication();
+    response = await sendApiRequest(path, options, accessToken);
+  }
 
-    if (
-        options.body &&
-        !(options.body instanceof FormData) &&
-        !headers.has('Content-Type')
-    ) {
-        headers.set('Content-Type', 'application/json');
-    }
+  if (response.status === 401) {
+    throw new Error('Authentication required');
+  }
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-        ...options,
-        headers,
-    });
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
 
-    if (response.status === 401) {
-        throw new Error('Authentication required');
-    }
+  if (response.status === 204) {
+    return null;
+  }
 
-    if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-    }
-
-    if (response.status === 204) {
-        return null;
-    }
-
-    return response.json();
+  return response.json();
 }
 
 export async function requestPasswordReset(email: string) {
@@ -58,54 +101,61 @@ export async function requestPasswordReset(email: string) {
   });
 }
 
+export async function resetPassword(data: {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}) {
+  return apiFetch('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function getCurrentUser() {
     return apiFetch('/auth/me');
 }
 
 export async function getCurrentUserProfilePhoto() {
-    if (keycloak.authenticated) {
-        await keycloak.updateToken(30);
+  let accessToken = await refreshKeycloakToken();
+
+  let response = await fetch(
+    `${API_BASE_URL}/auth/profile-photo`,
+    {
+      headers: createHeaders({}, accessToken),
     }
+  );
 
-    const headers = new Headers();
+  if (
+    response.status === 401 &&
+    !sessionStorage.getItem(ACCESS_TOKEN_KEY)
+  ) {
+    accessToken = await waitForAuthentication();
 
-    if (keycloak.token) {
-        headers.set('Authorization', `Bearer ${keycloak.token}`);
-    }
-
-    const response = await fetch(
-        `${API_BASE_URL}/auth/profile-photo`,
-        { headers }
+    response = await fetch(
+      `${API_BASE_URL}/auth/profile-photo`,
+      {
+        headers: createHeaders({}, accessToken),
+      }
     );
+  }
 
-    if (!response.ok) {
-        throw new Error(`Profile photo request failed: ${response.status}`);
-    }
+  if (!response.ok) {
+    throw new Error(`Profile photo request failed: ${response.status}`);
+  }
 
-    return response.blob();
+  return response.blob();
 }
 
 export async function apiFetchBlob(path: string) {
-  if (keycloak.authenticated) {
-    try {
-      await keycloak.updateToken(30);
-    } catch {
-      throw new Error('Authentication required');
-    }
+  let accessToken = await refreshKeycloakToken();
+
+  let response = await sendApiRequest(path, {}, accessToken);
+
+  if (response.status === 401 && !sessionStorage.getItem(ACCESS_TOKEN_KEY)) {
+    accessToken = await waitForAuthentication();
+    response = await sendApiRequest(path, {}, accessToken);
   }
-
-  const headers = new Headers();
-  const accessToken =
-    sessionStorage.getItem('capacity-connect.access-token') ||
-    keycloak.token;
-
-  if (accessToken) {
-    headers.set('Authorization', `Bearer ${accessToken}`);
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers,
-  });
 
   if (response.status === 401) {
     throw new Error('Authentication required');
