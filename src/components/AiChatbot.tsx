@@ -221,10 +221,15 @@ export default function AiChatbot({ resourceId: propResourceId }: AiChatbotProps
               answer: string;
               quickQueries: string[];
             }
-          : await chatWithAIResourceActivity(message, attachedFile!, activityContext) as {
-              answer: string;
-              quickQueries: string[];
-            };
+          : attachedFile
+            ? await chatWithAIResourceActivity(message, attachedFile, activityContext) as {
+                answer: string;
+                quickQueries: string[];
+              }
+            : await chatWithAIActivity(message, activityContext) as {
+                answer: string;
+                quickQueries: string[];
+              };
 
       setMessages((prev) => [
         ...prev,
