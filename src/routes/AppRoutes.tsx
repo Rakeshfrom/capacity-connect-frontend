@@ -14,6 +14,7 @@ import Announcements from '../pages/public/Announcements/Announcements';
 import Login from '../pages/auth/Login/Login';
 import Signup from '../pages/auth/Signup/Signup';
 import ForgotPassword from '../pages/auth/ForgotPassword/ForgotPassword';
+import ResetPassword from '../pages/auth/ResetPassword/ResetPassword';
 import GoogleCallback from '../pages/auth/GoogleCallback';
 
 import Assessments from '../pages/trainee/Assessments/Assessments';
@@ -71,6 +72,7 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/callback" element={<GoogleCallback />} />
       </Route>
 
@@ -93,7 +95,6 @@ const AppRoutes = () => {
         <Route path="/trainee/notifications" element={<Notifications />} />
         <Route path="/trainee/certificates" element={<Certificates />} />
         <Route path="/trainee/ai" element={<AiChatbot />} />
-        <Route path="/trainer/ai" element={<AiChatbot />} />
       </Route>
 
       <Route
@@ -114,6 +115,7 @@ const AppRoutes = () => {
         <Route path="/trainer/trainees/:traineeId" element={<TraineeDetail />} />
         <Route path="/trainer/analytics" element={<TrainerAnalytics />} />
       <Route path="/trainer/notifications" element={<TrainerNotifications />} />
+      <Route path="/trainer/ai" element={<AiChatbot />} />
       </Route>
 
       <Route
