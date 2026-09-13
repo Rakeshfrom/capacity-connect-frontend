@@ -952,9 +952,15 @@ const Courses = () => {
                 <Stack
                   direction={{ xs: 'column', sm: 'row' }}
                   spacing={1.1}
-                 sx={{flexWrap: 'wrap'}}>
+                  sx={{
+                    flexWrap: 'wrap',
+                    rowGap: 2.2,
+                  }}
+                >
                   <FormControl size="small" sx={{ minWidth: 155 }}>
-                    <InputLabel>Department</InputLabel>
+                    <InputLabel sx={{ bgcolor: '#fff', px: .5 }}>
+                      Department
+                    </InputLabel>
                     <Select
                       value={department}
                       label="Department"
@@ -974,7 +980,9 @@ const Courses = () => {
                   </FormControl>
 
                   <FormControl size="small" sx={{ minWidth: 145 }}>
-                    <InputLabel>Trainer</InputLabel>
+                    <InputLabel sx={{ bgcolor: '#fff', px: .5 }}>
+                      Trainer
+                    </InputLabel>
                     <Select
                       value={trainer}
                       label="Trainer"
@@ -990,7 +998,9 @@ const Courses = () => {
                   </FormControl>
 
                   <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <InputLabel>Category</InputLabel>
+                    <InputLabel sx={{ bgcolor: '#fff', px: .5 }}>
+                      Category
+                    </InputLabel>
                     <Select
                       value={category}
                       label="Category"
@@ -1008,7 +1018,9 @@ const Courses = () => {
                   </FormControl>
 
                   <FormControl size="small" sx={{ minWidth: 125 }}>
-                    <InputLabel>Level</InputLabel>
+                    <InputLabel sx={{ bgcolor: '#fff', px: .5 }}>
+                      Level
+                    </InputLabel>
                     <Select
                       value={level}
                       label="Level"
