@@ -43,4 +43,10 @@ export const loginWithCredentials = async (
 
 export const logoutCustomAuth = () => {
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+
+  for (const storage of [sessionStorage, localStorage]) {
+    Object.keys(storage)
+      .filter((key) => key.startsWith('capacity-connect.current-user'))
+      .forEach((key) => storage.removeItem(key));
+  }
 };

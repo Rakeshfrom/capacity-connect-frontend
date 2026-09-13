@@ -32,6 +32,7 @@ import {
 import { useState } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import keycloak from '../services/keycloak';
+import { logoutCustomAuth } from '../services/auth';
 
 const drawerWidth = 250;
 const collapsedWidth = 72;
@@ -57,6 +58,19 @@ const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logoutCustomAuth();
+
+    if (keycloak.authenticated && keycloak.idToken) {
+      keycloak.logout({
+        redirectUri: `${window.location.origin}/`,
+      });
+      return;
+    }
+
+    window.location.replace('/');
+  };
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -123,12 +137,7 @@ const AdminLayout = () => {
       <List sx={{ p: 1 }}>
         <Tooltip title={collapsed && !isMobile ? 'Logout' : ''} placement="right">
           <ListItemButton
-            onClick={() => {
-              Object.keys(localStorage)
-                .filter((key) => key.startsWith('capacity-connect.current-user'))
-                .forEach((key) => localStorage.removeItem(key));
-              keycloak.logout({ redirectUri: window.location.origin });
-            }}
+            onClick={handleLogout}
             sx={{
               minHeight: 48,
               borderRadius: 1.5,

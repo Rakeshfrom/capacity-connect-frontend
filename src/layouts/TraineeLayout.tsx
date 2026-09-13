@@ -27,6 +27,7 @@ import {
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import keycloak from '../services/keycloak';
+import { logoutCustomAuth } from '../services/auth';
 
 const drawerWidth = 250;
 const collapsedWidth = 72;
@@ -50,13 +51,16 @@ const TraineeLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = () => {
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith('capacity-connect.current-user'))
-      .forEach((key) => localStorage.removeItem(key));
+    logoutCustomAuth();
 
-    keycloak.logout({
-      redirectUri: `${window.location.origin}/`,
-    });
+    if (keycloak.authenticated && keycloak.idToken) {
+      keycloak.logout({
+        redirectUri: `${window.location.origin}/`,
+      });
+      return;
+    }
+
+    window.location.replace('/');
   };
 
   const handleNavigation = (path: string) => {
