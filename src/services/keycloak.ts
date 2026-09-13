@@ -26,4 +26,16 @@ export const initKeycloak = () => {
 export const getKeycloakInitPromise = () =>
   keycloakInitPromise ?? Promise.resolve(keycloak.authenticated ?? false);
 
+export const initKeycloakForCallback = () => {
+  if (!keycloakInitPromise) {
+    keycloakInitPromise = keycloak.init({
+      pkceMethod: 'S256',
+      checkLoginIframe: false,
+      messageReceiveTimeout: 3000,
+    });
+  }
+
+  return keycloakInitPromise;
+};
+
 export default keycloak;
