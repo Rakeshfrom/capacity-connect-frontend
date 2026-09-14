@@ -30,7 +30,7 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import GTranslate from '../components/GTranslate';
 import { useThemeMode } from '../context/ThemeModeContext';
-import { chatWithPublicAI } from '../services/api';
+import { streamPublicAI } from '../services/api';
 
 const PublicLayout = () => {
   const navigate = useNavigate();
@@ -59,18 +59,15 @@ const PublicLayout = () => {
     if (!message || publicAiLoading) return;
 
     setPublicAiLoading(true);
+    setPublicAiAnswer('');
+    setPublicAiQuickQueries([]);
+    setPublicAiInput('');
+
     try {
-      const result = await chatWithPublicAI(message) as {
-        answer?: string;
-        quickQueries?: string[];
-      };
-      setPublicAiAnswer(result.answer || 'Capacity AI could not generate a response right now.');
-      setPublicAiQuickQueries(
-        Array.isArray(result.quickQueries)
-          ? result.quickQueries.filter(Boolean).slice(0, 4)
-          : []
-      );
-      setPublicAiInput('');
+      const quickQueries = await streamPublicAI(message, (chunk) => {
+        setPublicAiAnswer((current) => current + chunk);
+      });
+      setPublicAiQuickQueries(quickQueries);
     } catch {
       setPublicAiAnswer('Capacity AI is temporarily unavailable. Please try again.');
       setPublicAiQuickQueries([]);

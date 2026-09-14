@@ -917,17 +917,109 @@ export async function getMyStudyResources() {
 }
 
 export async function chatWithPublicAI(message: string) {
-  const response = await fetch(`${API_BASE_URL}/ai/public-chat`, {
+  const normalized = message.trim().toLowerCase().replace(/\s+/g, ' ');
+  const cacheKey = `capacity-connect.public-ai.${normalized}`;
+
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // ignore cache failures
+  }
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 9000);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai/public-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Public AI request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify(result));
+    } catch {
+      // ignore cache failures
+    }
+
+    return result;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+export async function streamPublicAI(
+  message: string,
+  onChunk: (text: string) => void,
+) {
+  const response = await fetch(`${API_BASE_URL}/ai/public-chat/stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({ message }),
   });
 
   if (!response.ok) {
-    throw new Error(`Public AI request failed: ${response.status}`);
+    throw new Error(`Public AI stream failed: ${response.status}`);
   }
 
-  return response.json();
+  if (!response.body) {
+    throw new Error('Public AI stream body is unavailable');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let quickQueries: string[] = [];
+
+  const consume = (raw: string) => {
+    buffer += raw;
+    const events = buffer.split(/\r?\n\r?\n/);
+    buffer = events.pop() || '';
+
+    for (const event of events) {
+      const line = event
+        .split(/\r?\n/)
+        .find((value) => value.startsWith('data:'));
+      if (!line) continue;
+
+      const payload = line.slice(5).trim();
+      if (!payload) continue;
+
+      const data = JSON.parse(payload) as {
+        type?: string;
+        text?: string;
+        quickQueries?: string[];
+        message?: string;
+      };
+
+      if (data.type === 'delta' && data.text) {
+        onChunk(data.text);
+      } else if (data.type === 'done') {
+        quickQueries = Array.isArray(data.quickQueries)
+          ? data.quickQueries.filter(Boolean).slice(0, 4)
+          : [];
+      } else if (data.type === 'error') {
+        throw new Error(data.message || 'Public AI stream failed');
+      }
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    consume(decoder.decode(value, { stream: true }));
+  }
+
+  consume(decoder.decode());
+  return quickQueries;
 }
 
 export async function generateAiAssessment(
