@@ -11,6 +11,8 @@ import {
   getAccessToken,
   getOptimisticUserFromAccessToken,
   cacheOptimisticUserFromAccessToken,
+  refreshCustomAccessToken,
+  clearAuthStorage,
 } from '../services/auth';
 
 export interface CurrentUser {
@@ -107,10 +109,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
     };
 
+    const handleAuthExpired = () => {
+      clearAuthStorage();
+      if (!active) return;
+      setUser(null);
+      setLoading(false);
+      if (requiresKeycloak(window.location.pathname)) {
+        window.location.assign('/login');
+      }
+    };
+
     const bootstrapAuth = async () => {
       try {
-        const customToken = getAccessToken();
+        let customToken = getAccessToken();
         const protectedRoute = requiresKeycloak(window.location.pathname);
+
+        if (!customToken) {
+          customToken = await refreshCustomAccessToken(false);
+        }
 
         if (!customToken && protectedRoute && !keycloak.authenticated) {
           try {
@@ -140,16 +156,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Never block protected pages on /auth/me.
         setLoading(false);
         refreshCurrentUserInBackground();
+
+        const refreshTimer = window.setInterval(() => {
+          void refreshCustomAccessToken(false);
+        }, 2 * 60 * 1000);
+
+        return refreshTimer;
       } catch (error) {
         console.error('Authentication bootstrap failed:', error);
         if (active) setLoading(false);
+        return undefined;
       }
     };
 
-    bootstrapAuth();
+    window.addEventListener('capacity-connect:auth-expired', handleAuthExpired);
+
+    let refreshTimer: number | undefined;
+    void bootstrapAuth().then((timer) => {
+      if (typeof timer === 'number') refreshTimer = timer;
+    });
 
     return () => {
       active = false;
+      window.removeEventListener('capacity-connect:auth-expired', handleAuthExpired);
+      if (refreshTimer) window.clearInterval(refreshTimer);
     };
   }, []);
 

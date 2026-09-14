@@ -5,6 +5,7 @@ import {
   getAccessToken,
   refreshCustomAccessToken,
   isAccessTokenExpiringSoon,
+  clearAuthStorage,
 } from './auth';
 
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || ''}/api`;
@@ -41,10 +42,8 @@ const waitForAuthentication = async () => {
     return accessToken;
   }
 
-  if (getAccessToken() && !keycloak.authenticated) {
-    accessToken = await refreshCustomAccessToken(true);
-    if (accessToken) return accessToken;
-  }
+  accessToken = await refreshCustomAccessToken(false);
+  if (accessToken) return accessToken;
 
   try {
     await getKeycloakInitPromise();
@@ -99,6 +98,8 @@ export async function apiFetch(
   }
 
   if (response.status === 401) {
+    clearAuthStorage();
+    window.dispatchEvent(new CustomEvent('capacity-connect:auth-expired'));
     throw new Error('Authentication required');
   }
 
@@ -187,6 +188,8 @@ export async function apiFetchBlob(path: string) {
   }
 
   if (response.status === 401) {
+    clearAuthStorage();
+    window.dispatchEvent(new CustomEvent('capacity-connect:auth-expired'));
     throw new Error('Authentication required');
   }
 

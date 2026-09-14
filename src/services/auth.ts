@@ -1,5 +1,6 @@
 const ACCESS_TOKEN_KEY = 'capacity-connect.access-token';
 const REFRESH_TOKEN_KEY = 'capacity-connect.refresh-token';
+const PERSISTENT_REFRESH_TOKEN_KEY = 'capacity-connect.persistent-refresh-token';
 const ID_TOKEN_KEY = 'capacity-connect.id-token';
 const KEYCLOAK_TOKEN_URL = 'https://keycloak-production-66a8.up.railway.app/realms/capacity-connect/protocol/openid-connect/token';
 const KEYCLOAK_CLIENT_ID = 'capacity-connect-frontend';
@@ -35,7 +36,8 @@ export const getAccessToken = () =>
   sessionStorage.getItem(ACCESS_TOKEN_KEY);
 
 export const getRefreshToken = () =>
-  sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  sessionStorage.getItem(REFRESH_TOKEN_KEY) ||
+  localStorage.getItem(PERSISTENT_REFRESH_TOKEN_KEY);
 
 const decodeExp = (token: string) => {
   try {
@@ -85,9 +87,7 @@ export const refreshCustomAccessToken = async (force = false) => {
       });
 
       if (!response.ok) {
-        sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-        sessionStorage.removeItem(REFRESH_TOKEN_KEY);
-        sessionStorage.removeItem(ID_TOKEN_KEY);
+        clearAuthStorage();
         return null;
       }
 
@@ -97,6 +97,7 @@ export const refreshCustomAccessToken = async (force = false) => {
       sessionStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
       if (data.refreshToken) {
         sessionStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+        localStorage.setItem(PERSISTENT_REFRESH_TOKEN_KEY, data.refreshToken);
       }
       if (data.idToken) {
         sessionStorage.setItem(ID_TOKEN_KEY, data.idToken);
@@ -248,6 +249,7 @@ export const loginWithCredentials = async (
   sessionStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
   if (data.refreshToken) {
     sessionStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+    localStorage.setItem(PERSISTENT_REFRESH_TOKEN_KEY, data.refreshToken);
   }
   if (data.idToken) {
     sessionStorage.setItem(ID_TOKEN_KEY, data.idToken);
@@ -257,14 +259,19 @@ export const loginWithCredentials = async (
   return data;
 };
 
-export const logoutCustomAuth = () => {
+export const clearAuthStorage = () => {
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   sessionStorage.removeItem(ID_TOKEN_KEY);
+  localStorage.removeItem(PERSISTENT_REFRESH_TOKEN_KEY);
 
   for (const storage of [sessionStorage, localStorage]) {
     Object.keys(storage)
       .filter((key) => key.startsWith('capacity-connect.current-user'))
       .forEach((key) => storage.removeItem(key));
   }
+};
+
+export const logoutCustomAuth = () => {
+  clearAuthStorage();
 };
