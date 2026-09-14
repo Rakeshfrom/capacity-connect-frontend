@@ -20,6 +20,9 @@ const TrainerSignup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [qualification, setQualification] = useState('');
   const [experience, setExperience] = useState('');
+  const [department, setDepartment] = useState('');
+  const [skills, setSkills] = useState('');
+  const [interests, setInterests] = useState('');
   const [reason, setReason] = useState('');
   const [cv, setCv] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,7 +33,7 @@ const TrainerSignup = () => {
     event.preventDefault();
     setError('');
 
-    if (!fullName.trim() || !email.trim() || !password || !confirmPassword || !qualification.trim() || !experience.trim() || !cv) {
+    if (!fullName.trim() || !email.trim() || !password || !confirmPassword || !qualification.trim() || !experience.trim() || !department.trim() || !skills.trim() || !interests.trim() || !cv) {
       setError('Please complete all required fields and upload your CV.');
       return;
     }
@@ -62,6 +65,9 @@ const TrainerSignup = () => {
       await updateCurrentUserProfile({
         qualifications: qualification.trim(),
         experienceYears: Number(experience),
+        department: department.trim(),
+        skills: skills.trim(),
+        interests: interests.trim(),
       });
 
       await applyForTrainer({
@@ -184,6 +190,30 @@ const TrainerSignup = () => {
                 slotProps={{ htmlInput: { min: 0, max: 60 } }}
                 value={experience}
                 onChange={(e) => setExperience(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Department / Domain"
+                required
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                placeholder="e.g. Meteorology, Oceanography, Climate Science"
+              />
+              <TextField
+                fullWidth
+                label="Skills"
+                required
+                value={skills}
+                onChange={(e) => setSkills(e.target.value)}
+                placeholder="e.g. Python, forecasting, data analysis, teaching"
+              />
+              <TextField
+                fullWidth
+                label="Interests"
+                required
+                value={interests}
+                onChange={(e) => setInterests(e.target.value)}
+                placeholder="e.g. weather prediction, climate modelling"
               />
               <TextField fullWidth label="Why do you want to become a trainer?" value={reason} onChange={(e) => setReason(e.target.value)} multiline minRows={3} />
 
