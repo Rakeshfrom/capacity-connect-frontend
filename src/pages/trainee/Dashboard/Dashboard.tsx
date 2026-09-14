@@ -163,10 +163,12 @@ const Dashboard = () => {
         // Render the dashboard without waiting for AI.
         setLoading(false);
 
-        // AI insight loads independently in the background.
-        try {
-          const response = await chatWithAI(
-            `You are the learning coach inside an LMS dashboard.
+        // AI insight stays secondary to the dashboard itself.
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 7000);
+
+        chatWithAI(
+          `You are the learning coach inside an LMS dashboard.
 Based only on these trainee metrics, give one concise personalized learning insight and one next action.
 Enrolled courses: ${enrollmentData?.length || 0}
 Average course progress: ${avg}%
@@ -174,17 +176,25 @@ Assessment attempts: ${attemptData?.length || 0}
 Pending assessments: ${(attemptData || []).filter((a: Attempt) => a.result?.toUpperCase() === 'PENDING').length}
 Certificates issued: ${(certificateData || []).filter((c: Certificate) => c.status?.toUpperCase() === 'ISSUED').length}
 Do not invent course names, scores, or facts.
-Return plain text in 2 short sentences.`
-          );
-
-          setAiInsight(
-            typeof response === 'string'
-              ? response
-              : response?.answer || ''
-          );
-        } catch {
-          setAiInsight('');
-        }
+Return plain text in 2 short sentences.`,
+          null,
+          controller.signal,
+        )
+          .then((response) => {
+            setAiInsight(
+              typeof response === 'string'
+                ? response
+                : response?.answer || ''
+            );
+          })
+          .catch((error) => {
+            if (error?.name !== 'AbortError') {
+              setAiInsight('');
+            }
+          })
+          .finally(() => {
+            window.clearTimeout(timeout);
+          });
       } catch (error) {
         console.error('Failed to load trainee dashboard:', error);
         setLoading(false);

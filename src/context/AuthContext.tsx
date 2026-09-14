@@ -85,17 +85,34 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<CurrentUser | null>(getInitialUser);
-  const [loading, setLoading] = useState(true);
+  const initialUser = getInitialUser();
+  const [user, setUser] = useState<CurrentUser | null>(initialUser);
+  const [loading, setLoading] = useState(!initialUser);
 
   useEffect(() => {
     let active = true;
 
+    const refreshCurrentUserInBackground = () => {
+      getCurrentUser()
+        .then((data) => {
+          if (!active) return;
+
+          setUser(data);
+          const value = JSON.stringify(data);
+          sessionStorage.setItem(getCacheKey(), value);
+          localStorage.setItem(getCacheKey(), value);
+        })
+        .catch((error) => {
+          console.error('Failed to refresh current user:', error);
+        });
+    };
+
     const bootstrapAuth = async () => {
       try {
         const customToken = getAccessToken();
+        const protectedRoute = requiresKeycloak(window.location.pathname);
 
-        if (!customToken && requiresKeycloak(window.location.pathname)) {
+        if (!customToken && protectedRoute && !keycloak.authenticated) {
           try {
             await initKeycloak();
           } catch (error) {
@@ -111,25 +128,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (!hasAuthentication) {
           setUser(null);
+          setLoading(false);
           return;
         }
 
-        try {
-          const data = await getCurrentUser();
-          if (!active) return;
-
-          setUser(data);
-
-          const value = JSON.stringify(data);
-          sessionStorage.setItem(getCacheKey(), value);
-          localStorage.setItem(getCacheKey(), value);
-        } catch (error) {
-          console.error('Failed to refresh current user:', error);
+        const optimistic = getInitialUser();
+        if (optimistic) {
+          setUser((current) => current ?? optimistic);
         }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+
+        // Never block protected pages on /auth/me.
+        setLoading(false);
+        refreshCurrentUserInBackground();
+      } catch (error) {
+        console.error('Authentication bootstrap failed:', error);
+        if (active) setLoading(false);
       }
     };
 

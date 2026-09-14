@@ -112,8 +112,18 @@ export async function resetPassword(data: {
   });
 }
 
+let currentUserRequest: Promise<any> | null = null;
+
 export async function getCurrentUser() {
-    return apiFetch('/auth/me');
+  if (currentUserRequest) {
+    return currentUserRequest;
+  }
+
+  currentUserRequest = apiFetch('/auth/me').finally(() => {
+    currentUserRequest = null;
+  });
+
+  return currentUserRequest;
 }
 
 export async function getCurrentUserProfilePhoto() {
@@ -764,7 +774,11 @@ export async function searchPublicContent(query: string) {
   };
 }
 
-export async function chatWithAI(message: string, file: File | null = null) {
+export async function chatWithAI(
+  message: string,
+  file: File | null = null,
+  signal?: AbortSignal,
+) {
   if (file) {
     const formData = new FormData();
     formData.append('message', message);
@@ -784,6 +798,7 @@ export async function chatWithAI(message: string, file: File | null = null) {
       method: 'POST',
       body: formData,
       headers,
+      signal,
     });
 
     if (!response.ok) {
@@ -796,6 +811,7 @@ export async function chatWithAI(message: string, file: File | null = null) {
   return apiFetch('/ai/chat', {
     method: 'POST',
     body: JSON.stringify({ message }),
+    signal,
   });
 }
 
