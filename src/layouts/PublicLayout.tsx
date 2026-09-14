@@ -21,9 +21,11 @@ import AccessibilityNewRoundedIcon from '@mui/icons-material/AccessibilityNewRou
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import GTranslate from '../components/GTranslate';
+import { useThemeMode } from '../context/ThemeModeContext';
 
 const PublicLayout = () => {
   const navigate = useNavigate();
+  const { mode, setMode } = useThemeMode();
 
   const [search, setSearch] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -449,6 +451,27 @@ const PublicLayout = () => {
                       />
                     </Box>
                   ))}
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      py: 0.7,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ color: '#496476' }}>
+                      Dark mode
+                    </Typography>
+
+                    <input
+                      type="checkbox"
+                      checked={mode === 'dark'}
+                      onChange={(event) =>
+                        setMode(event.target.checked ? 'dark' : 'light')
+                      }
+                    />
+                  </Box>
 
                   <Button
                     fullWidth
