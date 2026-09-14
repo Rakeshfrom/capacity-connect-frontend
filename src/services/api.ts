@@ -1,31 +1,49 @@
 import keycloak, {
   getKeycloakInitPromise,
 } from './keycloak';
+import {
+  getAccessToken,
+  refreshCustomAccessToken,
+  isAccessTokenExpiringSoon,
+} from './auth';
 
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || ''}/api`;
 const ACCESS_TOKEN_KEY = 'capacity-connect.access-token';
 
 const getStoredToken = () =>
-  sessionStorage.getItem(ACCESS_TOKEN_KEY) || keycloak.token || null;
+  getAccessToken() || keycloak.token || null;
 
-const refreshKeycloakToken = async () => {
+const refreshKeycloakToken = async (force = false) => {
+  const customToken = getAccessToken();
+
+  if (customToken && !keycloak.authenticated) {
+    return refreshCustomAccessToken(force);
+  }
+
   if (!keycloak.authenticated) {
-    return getStoredToken();
+    return customToken || keycloak.token || null;
   }
 
   try {
-    await keycloak.updateToken(30);
-    return keycloak.token || getStoredToken();
+    if (force || !keycloak.token || isAccessTokenExpiringSoon(keycloak.token, 30)) {
+      await keycloak.updateToken(30);
+    }
+    return keycloak.token || customToken || null;
   } catch {
-    return getStoredToken();
+    return customToken || null;
   }
 };
 
 const waitForAuthentication = async () => {
   let accessToken = getStoredToken();
 
-  if (accessToken) {
+  if (accessToken && !isAccessTokenExpiringSoon(accessToken, 30)) {
     return accessToken;
+  }
+
+  if (getAccessToken() && !keycloak.authenticated) {
+    accessToken = await refreshCustomAccessToken(true);
+    if (accessToken) return accessToken;
   }
 
   try {
@@ -34,8 +52,7 @@ const waitForAuthentication = async () => {
     return null;
   }
 
-  accessToken = await refreshKeycloakToken();
-  return accessToken;
+  return refreshKeycloakToken();
 };
 
 const createHeaders = (options: RequestInit, accessToken: string | null) => {
@@ -74,9 +91,11 @@ export async function apiFetch(
 
   let response = await sendApiRequest(path, options, accessToken);
 
-  if (response.status === 401 && !sessionStorage.getItem(ACCESS_TOKEN_KEY)) {
+  if (response.status === 401) {
     accessToken = await waitForAuthentication();
-    response = await sendApiRequest(path, options, accessToken);
+    if (accessToken) {
+      response = await sendApiRequest(path, options, accessToken);
+    }
   }
 
   if (response.status === 401) {
