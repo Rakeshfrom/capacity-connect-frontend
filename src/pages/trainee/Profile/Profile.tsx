@@ -145,6 +145,8 @@ const Profile = () => {
         experienceYears: Number(experience),
       });
       const data = await applyForTrainer({
+        qualification: qualification.trim(),
+        experienceYears: Number(experience),
         reason,
         supportingDocumentUrl: '',
         supportingDocument: cv,

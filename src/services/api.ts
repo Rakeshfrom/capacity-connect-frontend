@@ -679,6 +679,8 @@ export async function getMyTrainerApplication() {
 }
 
 export async function applyForTrainer(data: {
+    qualification: string;
+    experienceYears: number;
     reason?: string;
     supportingDocumentUrl?: string;
     supportingDocument?: File | null;
@@ -690,6 +692,8 @@ export async function applyForTrainer(data: {
         new Blob(
             [
                 JSON.stringify({
+                    qualification: data.qualification,
+                    experienceYears: data.experienceYears,
                     reason: data.reason,
                     supportingDocumentUrl: data.supportingDocumentUrl,
                 }),

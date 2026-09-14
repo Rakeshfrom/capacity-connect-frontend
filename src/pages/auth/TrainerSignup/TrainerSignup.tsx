@@ -61,6 +61,8 @@ const TrainerSignup = () => {
       });
 
       await applyForTrainer({
+        qualification: qualification.trim(),
+        experienceYears: Number(experience),
         reason: reason.trim(),
         supportingDocumentUrl: '',
         supportingDocument: cv,
