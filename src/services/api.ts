@@ -726,20 +726,35 @@ export async function getTrainerApplication(id: number) {
 }
 
 export async function getTrainerApplicationDocument(id: number) {
-    if (keycloak.authenticated) {
-        await keycloak.updateToken(30);
-    }
+    let accessToken = await refreshKeycloakToken();
 
-    const headers = new Headers();
-
-    if (keycloak.token) {
-        headers.set('Authorization', `Bearer ${keycloak.token}`);
-    }
-
-    const response = await fetch(
+    let response = await fetch(
         `${API_BASE_URL}/trainer-applications/${id}/document`,
-        { headers }
+        {
+            headers: createHeaders({}, accessToken),
+        }
     );
+
+    if (response.status === 401) {
+        accessToken = await waitForAuthentication();
+
+        if (accessToken) {
+            response = await fetch(
+                `${API_BASE_URL}/trainer-applications/${id}/document`,
+                {
+                    headers: createHeaders({}, accessToken),
+                }
+            );
+        }
+    }
+
+    if (response.status === 401) {
+        clearAuthStorage();
+        window.dispatchEvent(
+            new CustomEvent('capacity-connect:auth-expired')
+        );
+        throw new Error('Authentication required');
+    }
 
     if (!response.ok) {
         throw new Error(`API request failed: ${response.status}`);
