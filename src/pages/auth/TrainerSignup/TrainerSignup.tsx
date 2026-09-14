@@ -1,7 +1,9 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { Alert, Box, Button, Container, Divider, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Container, Divider, IconButton, InputAdornment, Paper, Stack, TextField, Typography } from '@mui/material';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import { applyForTrainer, registerAccount, updateCurrentUserProfile } from '../../../services/api';
 import { loginWithCredentials, logoutCustomAuth } from '../../../services/auth';
@@ -14,6 +16,8 @@ const TrainerSignup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [qualification, setQualification] = useState('');
   const [experience, setExperience] = useState('');
   const [reason, setReason] = useState('');
@@ -123,8 +127,53 @@ const TrainerSignup = () => {
 
               <TextField fullWidth label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
               <TextField fullWidth label="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-              <TextField fullWidth label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} helperText="Minimum 8 characters with uppercase, lowercase, number and special character." autoComplete="new-password" />
-              <TextField fullWidth label="Confirm password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
+              <TextField
+                fullWidth
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                helperText="Minimum 8 characters with uppercase, lowercase, number and special character."
+                autoComplete="new-password"
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          edge="end"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          onClick={() => setShowPassword((value) => !value)}
+                        >
+                          {showPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Confirm password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          edge="end"
+                          aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                          onClick={() => setShowConfirmPassword((value) => !value)}
+                        >
+                          {showConfirmPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
               <Divider />
               <TextField fullWidth label="Highest qualification" required value={qualification} onChange={(e) => setQualification(e.target.value)} />
               <TextField
