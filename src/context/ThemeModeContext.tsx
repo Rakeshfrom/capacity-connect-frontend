@@ -39,13 +39,13 @@ export const ThemeModeProvider = ({ children }: { children: ReactNode }) => {
           mode,
           background:
             mode === 'dark'
-              ? { default: '#0E1A24', paper: '#152532' }
+              ? { default: '#050505', paper: '#111111' }
               : { default: '#F5F7FA', paper: '#FFFFFF' },
           text:
             mode === 'dark'
-              ? { primary: '#F4F8FB', secondary: '#B9C9D4' }
+              ? { primary: '#F5F5F5', secondary: '#B8B8B8' }
               : { primary: '#172B3A', secondary: '#5B6B7A' },
-          divider: mode === 'dark' ? '#29404F' : '#D9E4EB',
+          divider: mode === 'dark' ? '#242424' : '#D9E4EB',
         },
       }),
     [mode],
