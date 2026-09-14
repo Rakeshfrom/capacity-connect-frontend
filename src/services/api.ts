@@ -916,6 +916,20 @@ export async function getMyStudyResources() {
   return apiFetch("/trainee/resources");
 }
 
+export async function chatWithPublicAI(message: string) {
+  const response = await fetch(`${API_BASE_URL}/ai/public-chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Public AI request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function generateAiAssessment(
   topic: string,
   context: string,

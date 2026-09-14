@@ -3,14 +3,21 @@ import {
   AppBar,
   Box,
   Button,
+  Chip,
+  CircularProgress,
   Container,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   InputAdornment,
   Link,
   Menu,
   MenuItem,
   Popover,
+  Stack,
   TextField,
   Toolbar,
   Typography,
@@ -18,10 +25,12 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import AccessibilityNewRoundedIcon from '@mui/icons-material/AccessibilityNewRounded';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import GTranslate from '../components/GTranslate';
 import { useThemeMode } from '../context/ThemeModeContext';
+import { chatWithPublicAI } from '../services/api';
 
 const PublicLayout = () => {
   const navigate = useNavigate();
@@ -33,12 +42,42 @@ const PublicLayout = () => {
   const [assessmentAnchor, setAssessmentAnchor] = useState<null | HTMLElement>(null);
   const [competencyAnchor, setCompetencyAnchor] = useState<null | HTMLElement>(null);
   const [accessibilityAnchor, setAccessibilityAnchor] = useState<null | HTMLElement>(null);
+  const [publicAiOpen, setPublicAiOpen] = useState(false);
+  const [publicAiInput, setPublicAiInput] = useState('');
+  const [publicAiAnswer, setPublicAiAnswer] = useState('');
+  const [publicAiQuickQueries, setPublicAiQuickQueries] = useState<string[]>([]);
+  const [publicAiLoading, setPublicAiLoading] = useState(false);
   const [accessibilityOptions, setAccessibilityOptions] = useState({
     largeText: false,
     highContrast: false,
     underlineLinks: false,
     reducedMotion: false,
   });
+
+  const askPublicAI = async (text = publicAiInput) => {
+    const message = text.trim();
+    if (!message || publicAiLoading) return;
+
+    setPublicAiLoading(true);
+    try {
+      const result = await chatWithPublicAI(message) as {
+        answer?: string;
+        quickQueries?: string[];
+      };
+      setPublicAiAnswer(result.answer || 'Capacity AI could not generate a response right now.');
+      setPublicAiQuickQueries(
+        Array.isArray(result.quickQueries)
+          ? result.quickQueries.filter(Boolean).slice(0, 4)
+          : []
+      );
+      setPublicAiInput('');
+    } catch {
+      setPublicAiAnswer('Capacity AI is temporarily unavailable. Please try again.');
+      setPublicAiQuickQueries([]);
+    } finally {
+      setPublicAiLoading(false);
+    }
+  };
 
   const submitSearch = () => {
     const value = search.trim();
@@ -371,6 +410,29 @@ const PublicLayout = () => {
                 flexShrink: 0,
               }}
             >
+              <Button
+                variant="outlined"
+                startIcon={<AutoAwesomeOutlinedIcon sx={{ fontSize: 18 }} />}
+                onClick={() => setPublicAiOpen(true)}
+                sx={{
+                  minHeight: 38,
+                  px: 1.35,
+                  borderRadius: 1.5,
+                  borderColor: '#D8E3EA',
+                  color: '#173B5E',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  '&:hover': {
+                    bgcolor: '#F2F7FA',
+                    borderColor: '#AFC4D2',
+                    color: '#075B91',
+                  },
+                }}
+              >
+                AI Assistant
+              </Button>
+
               <IconButton
                 onClick={(event) => setAccessibilityAnchor(event.currentTarget)}
                 aria-label="Accessibility options"
@@ -778,6 +840,117 @@ const PublicLayout = () => {
           </Box>
         </Container>
       </Box>
+
+
+      <Dialog
+        open={publicAiOpen}
+        onClose={() => setPublicAiOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <AutoAwesomeOutlinedIcon color="primary" />
+            <Box>
+              <Typography sx={{ fontWeight: 800 }}>Capacity AI</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Ask about CAPACITY CONNECT, learning programmes, roles and platform features.
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          {!publicAiAnswer && (
+            <Box sx={{ py: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                Start with a website-related question.
+              </Typography>
+              <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>
+                {[
+                  'What is CAPACITY CONNECT?',
+                  'What can trainees do on the platform?',
+                  'How do trainers use the LMS?',
+                  'How does the AI assistant help?',
+                ].map((query) => (
+                  <Chip
+                    key={query}
+                    label={query}
+                    clickable
+                    variant="outlined"
+                    onClick={() => {
+                      setPublicAiInput(query);
+                      void askPublicAI(query);
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
+
+          {publicAiAnswer && (
+            <Box>
+              <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                {publicAiAnswer}
+              </Typography>
+              {publicAiQuickQueries.length > 0 && (
+                <>
+                  <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 800 }}>
+                    Continue with
+                  </Typography>
+                  <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>
+                    {publicAiQuickQueries.map((query) => (
+                      <Chip
+                        key={query}
+                        label={query}
+                        clickable
+                        size="small"
+                        variant="outlined"
+                        onClick={() => void askPublicAI(query)}
+                      />
+                    ))}
+                  </Stack>
+                </>
+              )}
+            </Box>
+          )}
+
+          {publicAiLoading && (
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 2 }}>
+              <CircularProgress size={18} />
+              <Typography variant="body2" color="text.secondary">
+                Capacity AI is responding…
+              </Typography>
+            </Stack>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <TextField
+            fullWidth
+            size="small"
+            value={publicAiInput}
+            onChange={(event) => setPublicAiInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                void askPublicAI();
+              }
+            }}
+            placeholder="Ask Capacity AI…"
+          />
+          <Button
+            variant="contained"
+            onClick={() => void askPublicAI()}
+            disabled={publicAiLoading || !publicAiInput.trim()}
+            sx={{ minWidth: 86, textTransform: 'none', fontWeight: 700 }}
+          >
+            Ask
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </Box>
   );
 };
