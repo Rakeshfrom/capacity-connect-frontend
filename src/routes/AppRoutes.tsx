@@ -41,6 +41,7 @@ import Trainees from '../pages/trainer/Trainees/Trainees';
 import TraineeDetail from '../pages/trainer/TraineeDetail/TraineeDetail';
 import TrainerAnalytics from '../pages/trainer/Analytics/Analytics';
 import TrainerNotifications from '../pages/trainer/Notifications/Notifications';
+import Settings from '../pages/settings/Settings';
 
 import AdminDashboard from '../pages/admin/Dashboard/Dashboard';
 import CompetencyMapping from '../pages/admin/CompetencyMapping/CompetencyMapping';
@@ -95,6 +96,7 @@ const AppRoutes = () => {
         <Route path="/trainee/notifications" element={<Notifications />} />
         <Route path="/trainee/certificates" element={<Certificates />} />
         <Route path="/trainee/ai" element={<AiChatbot />} />
+        <Route path="/trainee/settings" element={<Settings />} />
       </Route>
 
       <Route
@@ -116,6 +118,7 @@ const AppRoutes = () => {
         <Route path="/trainer/analytics" element={<TrainerAnalytics />} />
       <Route path="/trainer/notifications" element={<TrainerNotifications />} />
       <Route path="/trainer/ai" element={<AiChatbot />} />
+      <Route path="/trainer/settings" element={<Settings />} />
       </Route>
 
       <Route
@@ -136,6 +139,7 @@ const AppRoutes = () => {
         <Route path="/admin/announcements" element={<AdminAnnouncements />} />
         <Route path="/admin/achievements" element={<Achievements />} />
         <Route path="/admin/audit-logs" element={<AuditLogs />} />
+        <Route path="/admin/settings" element={<Settings />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
