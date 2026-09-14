@@ -154,13 +154,30 @@ const Settings = () => {
                 onClick={() => setMode('light')}
                 variant={mode === 'light' ? 'contained' : 'outlined'}
                 startIcon={<LightModeOutlinedIcon />}
-                sx={{ py: 1.4, justifyContent: 'flex-start', textTransform: 'none', borderRadius: 2 }}
+                color="inherit"
+                sx={{
+                  py: 1.4,
+                  px: 1.75,
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  borderRadius: 2,
+                  minHeight: 64,
+                  fontWeight: 700,
+                  color: mode === 'light' ? '#173B5E' : '#DCE7EE',
+                  borderColor: mode === 'light' ? '#B8CBD8' : '#3F5563',
+                  bgcolor: mode === 'light' ? '#F2F7FA' : 'rgba(255,255,255,0.02)',
+                  '&:hover': {
+                    bgcolor: mode === 'light' ? '#E8F1F6' : 'rgba(255,255,255,0.06)',
+                    borderColor: mode === 'light' ? '#8FAABD' : '#587080',
+                  },
+                  '& .MuiButton-startIcon': { color: 'inherit' },
+                }}
               >
                 <Box sx={{ textAlign: 'left' }}>
                   <Box component="span" sx={{ display: 'block', fontWeight: 800 }}>
                     Light
                   </Box>
-                  <Box component="span" sx={{ display: 'block', fontSize: 12, opacity: 0.75 }}>
+                  <Box component="span" sx={{ display: 'block', fontSize: 12, mt: 0.25, opacity: 0.78, fontWeight: 500 }}>
                     Clean and bright
                   </Box>
                 </Box>
@@ -170,13 +187,31 @@ const Settings = () => {
                 onClick={() => setMode('dark')}
                 variant={mode === 'dark' ? 'contained' : 'outlined'}
                 startIcon={<DarkModeOutlinedIcon />}
-                sx={{ py: 1.4, justifyContent: 'flex-start', textTransform: 'none', borderRadius: 2 }}
+                color="inherit"
+                sx={{
+                  py: 1.4,
+                  px: 1.75,
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  borderRadius: 2,
+                  minHeight: 64,
+                  fontWeight: 700,
+                  color: mode === 'dark' ? '#F4F8FB' : '#173B5E',
+                  borderColor: mode === 'dark' ? '#4C6573' : '#B8CBD8',
+                  bgcolor: mode === 'dark' ? '#263640' : '#FFFFFF',
+                  boxShadow: mode === 'dark' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none',
+                  '&:hover': {
+                    bgcolor: mode === 'dark' ? '#2D414C' : '#F2F7FA',
+                    borderColor: mode === 'dark' ? '#607B8A' : '#8FAABD',
+                  },
+                  '& .MuiButton-startIcon': { color: 'inherit' },
+                }}
               >
                 <Box sx={{ textAlign: 'left' }}>
                   <Box component="span" sx={{ display: 'block', fontWeight: 800 }}>
                     Dark
                   </Box>
-                  <Box component="span" sx={{ display: 'block', fontSize: 12, opacity: 0.75 }}>
+                  <Box component="span" sx={{ display: 'block', fontSize: 12, mt: 0.25, opacity: 0.82, fontWeight: 500 }}>
                     Low-light friendly
                   </Box>
                 </Box>
