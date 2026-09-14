@@ -54,9 +54,9 @@ const features = [
 ];
 
 const FeaturesSection = () => (
-  <Box id="features" sx={{ py: { xs: 7, md: 10 }, backgroundColor: '#f7f9fc' }}>
+  <Box id="features" sx={{ py: { xs: 5.5, md: 7 }, backgroundColor: '#f7f9fc' }}>
     <Container maxWidth="lg">
-      <Box sx={{ textAlign: 'center', mb: 5 }}>
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
         <Typography
           variant="overline"
           sx={{ fontWeight: 700, letterSpacing: 1.5 }}
@@ -69,7 +69,7 @@ const FeaturesSection = () => (
           sx={{
             mt: 1,
             fontWeight: 800,
-            fontSize: { xs: '2rem', md: '2.7rem' },
+            fontSize: { xs: '1.85rem', md: '2.35rem' },
           }}
         >
           Everything for Capacity Building
@@ -77,11 +77,11 @@ const FeaturesSection = () => (
 
         <Typography
           sx={{
-            mt: 1.5,
+            mt: 1.15,
             maxWidth: 720,
             mx: 'auto',
             color: 'text.secondary',
-            fontSize: '1.05rem',
+            fontSize: '0.98rem',
           }}
         >
           A unified digital platform for learning, assessment, competency
@@ -89,7 +89,7 @@ const FeaturesSection = () => (
         </Typography>
       </Box>
 
-      <Grid container spacing={2.5}>
+      <Grid container spacing={1.75}>
         {features.map((feature) => (
           <Grid key={feature.title} size={{ xs: 12, sm: 6, md: 3 }}>
             <Card
@@ -98,32 +98,32 @@ const FeaturesSection = () => (
                 height: '100%',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 3,
+                borderRadius: 2.5,
                 transition: '0.2s ease',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: 4,
+                  boxShadow: '0 10px 24px rgba(20,55,80,.08)',
                 },
               }}
             >
-              <CardContent sx={{ p: 3 }}>
+              <CardContent sx={{ p: { xs: 2.2, md: 2.45 } }}>
                 <Box
                   sx={{
-                    width: 46,
-                    height: 46,
+                    width: 42,
+                    height: 42,
                     borderRadius: 2,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: 'primary.main',
                     color: 'white',
-                    mb: 2,
+                    mb: 1.6,
                   }}
                 >
                   {feature.icon}
                 </Box>
 
-                <Typography variant="h6" sx={{ fontWeight: 750, mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 750, mb: 0.75, fontSize: '1rem' }}>
                   {feature.title}
                 </Typography>
 

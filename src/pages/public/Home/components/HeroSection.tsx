@@ -18,11 +18,11 @@ const HeroSection = () => {
       <Container maxWidth="xl">
         <Box
           sx={{
-            minHeight: { md: 540 },
-            py: { xs: 6, md: 8 },
+            minHeight: { md: 470 },
+            py: { xs: 4.5, md: 5.5 },
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1.15fr 0.85fr' },
-            gap: { xs: 5, md: 8 },
+            gap: { xs: 4, md: 6 },
             alignItems: 'center',
           }}
         >
@@ -46,10 +46,10 @@ const HeroSection = () => {
 
             <Typography
               sx={{
-                mt: 2.5,
+                mt: 2.15,
                 color: '#123F63',
                 fontWeight: 800,
-                fontSize: { xs: '2rem', sm: '2.55rem', md: '3.2rem' },
+                fontSize: { xs: '2rem', sm: '2.4rem', md: '3.05rem' },
                 lineHeight: 1.08,
                 maxWidth: 650,
               }}
@@ -61,10 +61,10 @@ const HeroSection = () => {
 
             <Typography
               sx={{
-                mt: 2.5,
+                mt: 2.05,
                 color: '#526B7D',
-                fontSize: { xs: '1rem', md: '1.15rem' },
-                lineHeight: 1.8,
+                fontSize: { xs: '0.98rem', md: '1.04rem' },
+                lineHeight: 1.72,
                 maxWidth: 690,
               }}
             >
@@ -73,7 +73,7 @@ const HeroSection = () => {
               secure learning environment.
             </Typography>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 4 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3.2 }}>
               <Button
                 variant="contained"
                 size="large"
@@ -113,7 +113,7 @@ const HeroSection = () => {
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
               spacing={{ xs: 1.5, sm: 3 }}
-              sx={{ mt: 4 }}
+              sx={{ mt: 3.2 }}
             >
               {[
                 ['✓', 'Structured learning'],
@@ -133,7 +133,7 @@ const HeroSection = () => {
             sx={{
               position: 'relative',
               overflow: 'hidden',
-              p: { xs: 3, sm: 4 },
+              p: { xs: 2.5, sm: 3.25 },
               borderRadius: 3,
               border: '1px solid #D2E3ED',
               bgcolor: 'rgba(255,255,255,0.92)',
@@ -161,23 +161,23 @@ const HeroSection = () => {
                 mt: 1,
                 color: '#173F60',
                 fontWeight: 800,
-                fontSize: '1.7rem',
+                fontSize: '1.52rem',
               }}
             >
               From learning to achievement
             </Typography>
 
-            <Stack spacing={2.2} sx={{ mt: 3 }}>
+            <Stack spacing={1.85} sx={{ mt: 2.4 }}>
               {[
                 [<SchoolOutlinedIcon />, 'Training Programmes', 'Discover structured learning opportunities.'],
                 [<MenuBookOutlinedIcon />, 'Digital Resources', 'Access presentations, recordings and study material.'],
                 [<VerifiedOutlinedIcon />, 'Assessment & Certification', 'Measure progress and earn recognised outcomes.'],
               ].map(([icon, title, text]) => (
-                <Box key={String(title)} sx={{ display: 'flex', gap: 2 }}>
+                <Box key={String(title)} sx={{ display: 'flex', gap: 1.6 }}>
                   <Box
                     sx={{
-                      width: 44,
-                      height: 44,
+                      width: 42,
+                      height: 42,
                       flexShrink: 0,
                       display: 'grid',
                       placeItems: 'center',

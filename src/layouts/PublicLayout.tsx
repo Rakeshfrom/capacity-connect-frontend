@@ -134,7 +134,7 @@ const PublicLayout = () => {
           <Toolbar
             disableGutters
             sx={{
-              minHeight: { xs: 72, md: 82 },
+              minHeight: { xs: 68, md: 76 },
               gap: { xs: 1, md: 2 },
             }}
           >
@@ -165,7 +165,7 @@ const PublicLayout = () => {
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                 <Typography
                   sx={{
-                    fontSize: { sm: '1.08rem', md: '1.3rem' },
+                    fontSize: { sm: '1.04rem', md: '1.18rem' },
                     fontWeight: 800,
                     letterSpacing: '0.02em',
                     lineHeight: 1.1,
@@ -178,7 +178,7 @@ const PublicLayout = () => {
                 <Typography
                   sx={{
                     mt: 0.35,
-                    fontSize: { sm: '0.58rem', md: '0.66rem' },
+                    fontSize: { sm: '0.56rem', md: '0.62rem' },
                     color: '#64798B',
                     fontWeight: 500,
                     whiteSpace: 'nowrap',
@@ -200,7 +200,7 @@ const PublicLayout = () => {
                 display: { xs: 'none', lg: 'flex' },
                 alignItems: 'center',
                 ml: { md: 2, xl: 4 },
-                width: { lg: 190, xl: 245 },
+                width: { lg: 185, xl: 230 },
               }}
             >
               <TextField
@@ -244,7 +244,7 @@ const PublicLayout = () => {
               sx={{
                 display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
-                gap: 0.25,
+                gap: 0.15,
                 ml: 'auto',
               }}
             >

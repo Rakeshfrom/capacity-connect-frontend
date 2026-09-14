@@ -12,14 +12,14 @@ const highlights = [
 ];
 
 const PlatformHighlights = () => (
-  <Box sx={{ py: { xs: 7, md: 10 }, bgcolor: '#fff' }}>
+  <Box sx={{ py: { xs: 5.5, md: 7 }, bgcolor: '#fff' }}>
     <Container maxWidth="xl">
-      <Box sx={{ maxWidth: 760, mb: { xs: 4, md: 5.5 } }}>
+      <Box sx={{ maxWidth: 760, mb: { xs: 3.5, md: 4.5 } }}>
         <Typography
           sx={{
             color: '#0B5A91',
             fontWeight: 800,
-            fontSize: '.76rem',
+            fontSize: '.7rem',
             letterSpacing: '.12em',
           }}
         >
@@ -29,7 +29,7 @@ const PlatformHighlights = () => (
         <Typography
           variant="h4"
           sx={{
-            mt: 1.2,
+            mt: 0.9,
             color: '#123F63',
             fontWeight: 800,
             letterSpacing: '-.02em',
@@ -38,7 +38,7 @@ const PlatformHighlights = () => (
           Everything you need for connected learning
         </Typography>
 
-        <Typography sx={{ mt: 1.5, color: '#657887', lineHeight: 1.75, maxWidth: 680 }}>
+        <Typography sx={{ mt: 1.5, color: '#657887', lineHeight: 1.65, maxWidth: 680 }}>
           A single environment connecting learning, resources, assessment,
           certification and professional development.
         </Typography>
@@ -58,8 +58,8 @@ const PlatformHighlights = () => (
             sx={{
               position: 'relative',
               overflow: 'hidden',
-              p: { xs: 2.8, md: 3.2 },
-              minHeight: 205,
+              p: { xs: 2.4, md: 2.7 },
+              minHeight: 185,
               border: '1px solid #DCE7EE',
               borderRadius: 3,
               bgcolor: '#fff',
@@ -106,11 +106,11 @@ const PlatformHighlights = () => (
               </Typography>
             </Box>
 
-            <Typography sx={{ mt: 2.4, color: '#244A66', fontWeight: 800, fontSize: '1.05rem' }}>
+            <Typography sx={{ mt: 1.9, color: '#244A66', fontWeight: 800, fontSize: '1.05rem' }}>
               {title}
             </Typography>
 
-            <Typography variant="body2" sx={{ mt: 1, color: '#657887', lineHeight: 1.65 }}>
+            <Typography variant="body2" sx={{ mt: 0.75, color: '#657887', lineHeight: 1.65 }}>
               {text}
             </Typography>
           </Paper>
