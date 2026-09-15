@@ -46,6 +46,9 @@ import {
   getMyCourseResources,
   getCourseModules,
   updateEnrollmentProgress,
+  startLearningSession,
+  heartbeatLearningSession,
+  stopLearningSession,
 } from '../../../services/api';
 
 type Course = {
@@ -318,6 +321,57 @@ const CourseWorkspace = () => {
     id,
     selectedModule,
   ]);
+
+
+  useEffect(() => {
+    if (!enrollment || !selectedModule) {
+      return;
+    }
+
+    let mounted = true;
+    let sessionId: number | null = null;
+    let heartbeatTimer: number | null = null;
+
+    const startSession = async () => {
+      try {
+        const session = await startLearningSession(
+          id,
+          selectedModule.id
+        );
+
+        if (!mounted) {
+          if (session?.id) {
+            await stopLearningSession(Number(session.id)).catch(() => {});
+          }
+          return;
+        }
+
+        sessionId = Number(session.id);
+
+        heartbeatTimer = window.setInterval(() => {
+          if (sessionId) {
+            heartbeatLearningSession(sessionId).catch(() => {});
+          }
+        }, 30000);
+      } catch (error) {
+        console.warn('Learning session tracking unavailable:', error);
+      }
+    };
+
+    startSession();
+
+    return () => {
+      mounted = false;
+
+      if (heartbeatTimer) {
+        window.clearInterval(heartbeatTimer);
+      }
+
+      if (sessionId) {
+        stopLearningSession(sessionId).catch(() => {});
+      }
+    };
+  }, [enrollment?.id, selectedModule?.id, id]);
 
   const handleModuleComplete = async () => {
     if (!selectedModule || !enrollment || modules.length === 0) {

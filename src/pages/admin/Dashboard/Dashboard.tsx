@@ -1,3 +1,4 @@
+import PortalDashboardEnhancements from '../../../components/dashboard/PortalDashboardEnhancements';
 import { useEffect, useState } from 'react';
 import {
   Box,
@@ -533,7 +534,8 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </Box>
-      </Container>
+              <PortalDashboardEnhancements />
+</Container>
     </Box>
   );
 };

@@ -1165,3 +1165,27 @@ export async function chatWithStoredResourceActivity(message: string, resourceId
   formData.append('message', message); formData.append('resourceId', String(resourceId)); formData.append('activityContext', activityContext);
   return apiFetch('/ai/chat/resource-id', { method: 'POST', body: formData });
 }
+
+
+export async function startLearningSession(courseId: number, moduleId: number) {
+  return apiFetch('/learning-sessions/start', {
+    method: 'POST',
+    body: JSON.stringify({ courseId, moduleId }),
+  });
+}
+
+export async function heartbeatLearningSession(sessionId: number) {
+  return apiFetch(`/learning-sessions/${sessionId}/heartbeat`, {
+    method: 'POST',
+  });
+}
+
+export async function stopLearningSession(sessionId: number) {
+  return apiFetch(`/learning-sessions/${sessionId}/stop`, {
+    method: 'POST',
+  });
+}
+
+export async function getMyLearningAnalytics() {
+  return apiFetch('/learning-sessions/me/summary');
+}

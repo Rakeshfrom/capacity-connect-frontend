@@ -70,7 +70,70 @@ const AdminLayout = () => {
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Toolbar sx={{ minHeight: '72px !important', px: 2 }}>
-        {(!collapsed || isMobile) && <Box><Typography variant="subtitle1" color="primary" sx={{ fontWeight: 800 }}>CAPACITY CONNECT</Typography><Typography variant="caption" color="text.secondary">Administration Portal</Typography></Box>}
+        {!collapsed || isMobile ? (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              minWidth: 0,
+            }}
+          >
+            <Box
+              component="img"
+              src="/logo/saksham-logo.jpeg"
+              alt="Saksham"
+              sx={{
+                width: 42,
+                height: 42,
+                objectFit: 'contain',
+                flexShrink: 0,
+              }}
+            />
+
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                variant="subtitle1"
+                color="primary"
+                noWrap
+                sx={{
+                  fontWeight: 900,
+                  lineHeight: 1,
+                  letterSpacing: '0.025em',
+                }}
+              >
+                SAKSHAM
+              </Typography>
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                noWrap
+                sx={{
+                  display: 'block',
+                  mt: 0.45,
+                  fontWeight: 700,
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.045em',
+                  lineHeight: 1,
+                }}
+              >
+                CAPACITY CONNECT
+              </Typography>
+            </Box>
+          </Box>
+        ) : (
+          <Box
+            component="img"
+            src="/logo/saksham-logo.jpeg"
+            alt="Saksham"
+            sx={{
+              width: 42,
+              height: 42,
+              objectFit: 'contain',
+            }}
+          />
+        )}
       </Toolbar>
       <Divider />
       <List sx={{ px: 1, py: 1.5, flex: 1, overflowY: 'auto' }}>

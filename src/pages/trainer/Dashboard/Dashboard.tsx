@@ -1,3 +1,4 @@
+import PortalDashboardEnhancements from '../../../components/dashboard/PortalDashboardEnhancements';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -581,6 +582,7 @@ const Dashboard = () => {
         </Box>
       
         <TrainerAnalyticsVisuals compact />
+        <PortalDashboardEnhancements />
 </Container>
     </Box>
   );

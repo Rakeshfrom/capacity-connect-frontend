@@ -1,3 +1,6 @@
+import PortalDashboardEnhancements from '../../../components/dashboard/PortalDashboardEnhancements';
+import TraineeAssessmentAnalytics from './TraineeAssessmentAnalytics';
+import TraineeLearningAnalytics from './TraineeLearningAnalytics';
 import TraineePortalQuickActions from './TraineePortalQuickActions';
 import {
   Avatar,
@@ -1462,7 +1465,10 @@ Return plain text in 2 short sentences.`,
             </Button>
           </Box>
         </Paper>
-      </Container>
+              <TraineeLearningAnalytics />
+              <TraineeAssessmentAnalytics />
+              <PortalDashboardEnhancements />
+</Container>
     </Box>
   );
 };

@@ -64,8 +64,67 @@ const TrainerLayout = () => {
 
   const drawerContent = (isMobile = false) => (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ px: isMobile || !collapsed ? 2.5 : 1, py: 2, minHeight: 72, display: 'flex', alignItems: 'center', justifyContent: isMobile || !collapsed ? 'flex-start' : 'center' }}>
-        {isMobile || !collapsed ? <Box><Typography variant="h6" color="primary" noWrap sx={{ fontWeight: 800 }}>CAPACITY CONNECT</Typography><Typography variant="caption" color="text.secondary">Trainer Portal</Typography></Box> : <Typography variant="h6" color="primary" sx={{ fontWeight: 800 }}>CC</Typography>}
+      <Box
+        sx={{
+          px: 2,
+          py: 1.5,
+          minHeight: 72,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            minWidth: 0,
+          }}
+        >
+          <Box
+            component="img"
+            src="/logo/saksham-logo.jpeg"
+            alt="Saksham"
+            sx={{
+              width: 42,
+              height: 42,
+              objectFit: 'contain',
+              flexShrink: 0,
+            }}
+          />
+
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="h6"
+              color="primary"
+              noWrap
+              sx={{
+                fontWeight: 900,
+                lineHeight: 1,
+                letterSpacing: '0.025em',
+              }}
+            >
+              SAKSHAM
+            </Typography>
+
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              sx={{
+                display: 'block',
+                mt: 0.45,
+                fontWeight: 700,
+                fontSize: '0.62rem',
+                letterSpacing: '0.045em',
+                lineHeight: 1,
+              }}
+            >
+              CAPACITY CONNECT
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
       <List sx={{ px: 1, py: 1, flex: 1, overflowY: 'auto' }}>

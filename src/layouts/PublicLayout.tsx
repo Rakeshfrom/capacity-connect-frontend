@@ -189,38 +189,41 @@ const PublicLayout = () => {
             >
               <Box
                 component="img"
-                src="/logo/imd-logo.webp"
-                alt="India Meteorological Department"
+                src="/logo/saksham-logo.jpeg"
+                alt="Saksham Training and Learning Platform"
                 sx={{
                   width: { xs: 46, md: 52 },
                   height: { xs: 46, md: 52 },
                   objectFit: 'contain',
+                  flexShrink: 0,
                 }}
               />
 
-              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <Box sx={{ display: { xs: 'none', sm: 'block' }, ml: 0.2 }}>
                 <Typography
                   sx={{
-                    fontSize: { sm: '1.04rem', md: '1.18rem' },
-                    fontWeight: 800,
-                    letterSpacing: '0.02em',
-                    lineHeight: 1.1,
+                    fontSize: { sm: '1.12rem', md: '1.34rem' },
+                    fontWeight: 900,
+                    letterSpacing: '0.025em',
+                    lineHeight: 1,
                     color: '#123F63',
                   }}
                 >
-                  CAPACITY CONNECT
+                  SAKSHAM
                 </Typography>
 
                 <Typography
                   sx={{
-                    mt: 0.35,
-                    fontSize: { sm: '0.56rem', md: '0.62rem' },
+                    mt: 0.38,
+                    fontSize: { sm: '0.58rem', md: '0.68rem' },
                     color: '#64798B',
-                    fontWeight: 500,
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    lineHeight: 1,
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Digital Capacity Building & Learning Management Portal
+                  CAPACITY CONNECT
                 </Typography>
               </Box>
             </Box>
