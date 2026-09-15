@@ -1,3 +1,4 @@
+import TraineePortalQuickActions from './TraineePortalQuickActions';
 import {
   Avatar,
   Box,
@@ -374,6 +375,8 @@ Return plain text in 2 short sentences.`,
   return (
     <Box sx={{ bgcolor: colors.bg, minHeight: '100vh', py: { xs: 2.5, md: 4 } }}>
       <Container maxWidth="xl">
+          <TraineePortalQuickActions />
+
 
         {/* HEADER */}
         <Box

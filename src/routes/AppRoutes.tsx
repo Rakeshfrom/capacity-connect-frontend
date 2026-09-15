@@ -31,8 +31,12 @@ import Feedback from '../pages/trainee/Feedback/Feedback';
 import Notifications from '../pages/trainee/Notifications/Notifications';
 import Certificates from '../pages/trainee/Certificates/Certificates';
 import AiChatbot from '../components/AiChatbot';
+import DemoCourseWorkspace from '../pages/trainee/DemoCourses/DemoCourseWorkspace';
+import DemoResultCertificate from '../pages/trainee/DemoCourses/DemoResultCertificate';
+import DemoCourseList from '../pages/trainee/DemoCourses/DemoCourseList';
 
 import TrainerDashboard from '../pages/trainer/Dashboard/Dashboard';
+import DemoCourse from '../pages/trainer/DemoCourse/DemoCourse';
 import TrainerProfile from '../pages/trainer/Profile/Profile';
 import TrainerCourses from '../pages/trainer/Courses/Courses';
 import ManageCourse from '../pages/trainer/Courses/ManageCourse/ManageCourse';
@@ -99,7 +103,10 @@ const AppRoutes = () => {
         <Route path="/trainee/feedback" element={<Feedback />} />
         <Route path="/trainee/notifications" element={<Notifications />} />
         <Route path="/trainee/certificates" element={<Certificates />} />
-        <Route path="/trainee/ai" element={<AiChatbot />} />
+        <Route path="/trainee/demo-courses" element={<DemoCourseList />} />
+      <Route path="/trainee/demo-courses/:courseId" element={<DemoCourseWorkspace />} />
+      <Route path="/trainee/demo-courses/:courseId/result" element={<DemoResultCertificate />} />
+      <Route path="/trainee/ai" element={<AiChatbot />} />
         <Route path="/trainee/settings" element={<Settings />} />
       </Route>
 
@@ -111,6 +118,7 @@ const AppRoutes = () => {
         }
       >
         <Route path="/trainer/dashboard" element={<TrainerDashboard />} />
+<Route path="/trainer/demo-courses/:courseId" element={<DemoCourse />} />
         <Route path="/trainer/profile" element={<TrainerProfile />} />
         <Route path="/trainer/courses" element={<TrainerCourses />} />
         <Route path="/trainer/courses/:courseId" element={<ManageCourse />} />

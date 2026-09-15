@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -23,6 +24,9 @@ import {
   getAssessmentsByCourse,
 } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import TrainerAnalyticsVisuals from '../Analytics/TrainerAnalyticsVisuals';
+import { trainerDummyCourses, TRAINER_DASHBOARD_DEMO_COURSES_ENABLED } from '../../../data/trainerDummyCourses';
+import TrainerQuickActions from './TrainerQuickActions';
 
 type CourseAnalytics = {
   courseId: number;
@@ -47,10 +51,15 @@ type Assessment = {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
 
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [courses, setCourses] = useState<CourseAnalytics[]>([]);
+  const displayCourses = TRAINER_DASHBOARD_DEMO_COURSES_ENABLED
+    ? trainerDummyCourses
+    : courses;
+
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -120,7 +129,7 @@ const Dashboard = () => {
     },
     {
       label: 'Courses',
-      value: courses.length,
+      value: displayCourses.length,
       change: 'Assigned programmes',
       icon: <MenuBookOutlinedIcon />,
     },
@@ -298,7 +307,9 @@ const Dashboard = () => {
                   mb: 2,
                 }}
               >
-                <Box>
+                <TrainerQuickActions />
+
+          <Box>
                   <Typography
                     sx={{
                       color: '#173F60',
@@ -316,6 +327,7 @@ const Dashboard = () => {
 
                 <Button
                   endIcon={<ArrowForwardOutlinedIcon />}
+                  onClick={() => navigate('/trainer/courses')}
                   sx={{
                     color: '#0B5A91',
                     textTransform: 'none',
@@ -326,75 +338,165 @@ const Dashboard = () => {
                 </Button>
               </Stack>
 
-              {courses.length === 0 ? (
-                <Typography sx={{ color: '#718594' }}>
-                  No courses assigned.
-                </Typography>
+              {displayCourses.length === 0 ? (
+                <Box
+                  sx={{
+                    py: 3,
+                    textAlign: 'center',
+                    border: '1px dashed #D7E3EA',
+                    borderRadius: 2,
+                  }}
+                >
+                  <MenuBookOutlinedIcon
+                    sx={{ fontSize: 34, color: '#9AAAB4', mb: 1 }}
+                  />
+                  <Typography
+                    sx={{
+                      color: '#657887',
+                      fontWeight: 600,
+                    }}
+                  >
+                    No courses assigned.
+                  </Typography>
+                </Box>
               ) : (
-                courses.map((course, index) => (
-                  <Box key={course.courseId}>
-                    {index > 0 && <Divider sx={{ my: 2 }} />}
-
-                    <Stack
-                      direction={{ xs: 'column', sm: 'row' }}
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      md: 'repeat(2, 1fr)',
+                    },
+                    gap: 2,
+                  }}
+                >
+                  {displayCourses.map((course) => (
+                    <Box
+                      key={course.courseId}
+                      onClick={() =>
+                        navigate(`/trainer/demo-courses/${course.courseId}`)
+                      }
                       sx={{
-                        justifyContent: 'space-between',
-                        alignItems: { xs: 'flex-start', sm: 'center' },
-                        gap: 2,
+                        border: '1px solid #DCE8F0',
+                        borderRadius: 2.5,
+                        p: 2,
+                        cursor: 'pointer',
+                        bgcolor: '#FFFFFF',
+                        transition:
+                          'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          borderColor: '#B8D4E3',
+                          boxShadow: '0 8px 24px rgba(23,63,96,0.08)',
+                        },
                       }}
                     >
-                      <Box sx={{ flex: 1 }}>
-                        <Typography
+                      <Stack
+                        direction="row"
+                        sx={{
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: 1.5,
+                        }}
+                      >
+                        <Box
                           sx={{
-                            color: '#173F60',
-                            fontWeight: 700,
+                            width: 42,
+                            height: 42,
+                            borderRadius: 1.5,
+                            bgcolor: '#EAF4FB',
+                            color: '#0B5A91',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
                           }}
                         >
-                          {course.courseTitle}
-                        </Typography>
+                          <MenuBookOutlinedIcon />
+                        </Box>
 
+                        <Chip
+                          label={`${course.completion}%`}
+                          size="small"
+                          sx={{
+                            bgcolor: '#EAF6EF',
+                            color: '#147A45',
+                            fontWeight: 800,
+                          }}
+                        />
+                      </Stack>
+
+                      <Typography
+                        sx={{
+                          mt: 1.8,
+                          color: '#173F60',
+                          fontWeight: 800,
+                          lineHeight: 1.35,
+                          minHeight: 43,
+                        }}
+                      >
+                        {course.courseTitle}
+                      </Typography>
+
+                      <Typography
+                        sx={{
+                          mt: 0.7,
+                          color: '#718594',
+                          fontSize: '0.84rem',
+                        }}
+                      >
+                        {course.trainees} trainees enrolled
+                      </Typography>
+
+                      <Box
+                        sx={{
+                          mt: 1.5,
+                          height: 7,
+                          bgcolor: '#E5EDF2',
+                          borderRadius: 6,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: `${course.completion}%`,
+                            height: '100%',
+                            bgcolor: '#0B5A91',
+                            borderRadius: 6,
+                          }}
+                        />
+                      </Box>
+
+                      <Stack
+                        direction="row"
+                        sx={{
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          mt: 1.4,
+                        }}
+                      >
                         <Typography
                           sx={{
                             color: '#718594',
-                            fontSize: '0.88rem',
-                            mt: 0.5,
+                            fontSize: '0.78rem',
                           }}
                         >
-                          {course.trainees} trainees enrolled
+                          Avg. score {course.averageScore}%
                         </Typography>
 
-                        <Box
+                        <Typography
                           sx={{
-                            height: 7,
-                            bgcolor: '#E5EDF2',
-                            borderRadius: 5,
-                            mt: 1.5,
-                            overflow: 'hidden',
+                            color: '#0B5A91',
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
                           }}
                         >
-                          <Box
-                            sx={{
-                              width: `${course.completion}%`,
-                              height: '100%',
-                              bgcolor: '#0B5A91',
-                              borderRadius: 5,
-                            }}
-                          />
-                        </Box>
-                      </Box>
-
-                      <Chip
-                        label={`${course.completion}%`}
-                        size="small"
-                        sx={{
-                          bgcolor: '#EAF4FB',
-                          color: '#0B5A91',
-                          fontWeight: 700,
-                        }}
-                      />
-                    </Stack>
-                  </Box>
-                ))
+                          View course →
+                        </Typography>
+                      </Stack>
+                    </Box>
+                  ))}
+                </Box>
               )}
             </CardContent>
           </Card>
@@ -477,7 +579,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </Box>
-      </Container>
+      
+        <TrainerAnalyticsVisuals compact />
+</Container>
     </Box>
   );
 };

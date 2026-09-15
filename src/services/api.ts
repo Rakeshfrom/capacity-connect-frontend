@@ -348,6 +348,10 @@ export async function getAssessmentsByCourse(courseId: number) {
   return apiFetch(`/assessments/course/${courseId}`);
 }
 
+export async function getAttemptsByAssessment(assessmentId: number) {
+  return apiFetch(`/assessment-attempts/assessment/${assessmentId}`);
+}
+
 export async function getMyCourseResources(courseId: number) {
   return apiFetch(`/trainer-resources/trainee/course/${courseId}`);
 }
